@@ -1,0 +1,171 @@
+{
+  "name": "WF-04 Agenda y Recordatorios (Template)",
+  "nodes": [
+    {
+      "name": "Webhook Agenda",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "legal-agenda",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "name": "Normalizar Cita",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const b = $json.body || $json;\nconst clean = (v) => (v ?? '').toString().trim();\nconst clientId = Number(clean(b.client_id));\nconst caseId = clean(b.case_id) ? Number(clean(b.case_id)) : null;\nconst starts = clean(b.starts_at);\nconst ends = clean(b.ends_at);\nconst valid = Number.isFinite(clientId) && starts !== '' && ends !== '';\nreturn [{json:{\n  valid,\n  error: valid ? '' : 'Campos requeridos: client_id, starts_at, ends_at',\n  client_id: clientId,\n  case_id: Number.isFinite(caseId) ? caseId : null,\n  starts_at: starts,\n  ends_at: ends,\n  location_type: clean(b.location_type) || 'virtual',\n  meeting_link: clean(b.meeting_link) || null\n}}];"
+      }
+    },
+    {
+      "name": "Es valida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Insertar Cita",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO appointments (case_id, client_id, starts_at, ends_at, location_type, meeting_link, status)\nVALUES (\n  {{ $json.case_id ? $json.case_id : 'NULL' }},\n  {{ $json.client_id }},\n  '{{ $json.starts_at }}',\n  '{{ $json.ends_at }}',\n  '{{ $json.location_type.replace(/\\'/g, \"''\") }}',\n  {{ $json.meeting_link ? \"'\" + $json.meeting_link.replace(/\\'/g, \"''\") + \"'\" : 'NULL' }},\n  'programada'\n)\nRETURNING id, case_id, client_id, starts_at, ends_at, status;"
+      }
+    },
+    {
+      "name": "Log Evento Cita",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO case_events (case_id, event_type, event_payload, created_by)\nVALUES (\n  {{ $('Insertar Cita').item.json.case_id ? $('Insertar Cita').item.json.case_id : 'NULL' }},\n  'appointment_created',\n  '{{ {\n    appointment_id: $('Insertar Cita').item.json.id,\n    starts_at: $('Insertar Cita').item.json.starts_at,\n    ends_at: $('Insertar Cita').item.json.ends_at\n  }.toJsonString().replace(/\\'/g, \"''\") }}'::jsonb,\n  'wf_agenda'\n)\nRETURNING id;"
+      }
+    },
+    {
+      "name": "Respuesta Agenda OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', appointment_id: $('Insertar Cita').item.json.id, starts_at: $('Insertar Cita').item.json.starts_at, ends_at: $('Insertar Cita').item.json.ends_at } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "name": "Respuesta Agenda Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'error', message: $json.error || 'Solicitud invalida para agenda' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    },
+    {
+      "name": "Cron Recordatorios",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Buscar Citas Proximas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, case_id, client_id, starts_at, status\nFROM appointments\nWHERE status = 'programada'\n  AND starts_at BETWEEN NOW() AND (NOW() + INTERVAL '24 hours')\nORDER BY starts_at ASC\nLIMIT 200;"
+      }
+    },
+    {
+      "name": "Registrar Recordatorios",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nreturn rows.map(r => ({ json: {\n  case_id: r.json.case_id || null,\n  event_type: 'appointment_reminder_due',\n  event_payload: { appointment_id: r.json.id, starts_at: r.json.starts_at, client_id: r.json.client_id }\n}}));"
+      }
+    },
+    {
+      "name": "Insertar Eventos Recordatorio",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO case_events (case_id, event_type, event_payload, created_by)\nVALUES (\n  {{ $json.case_id ? $json.case_id : 'NULL' }},\n  '{{ $json.event_type }}',\n  '{{ $json.event_payload.toJsonString().replace(/\\'/g, \"''\") }}'::jsonb,\n  'wf_agenda_cron'\n);"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Agenda": {
+      "main": [[{ "node": "Normalizar Cita", "type": "main", "index": 0 }]]
+    },
+    "Normalizar Cita": {
+      "main": [[{ "node": "Es valida?", "type": "main", "index": 0 }]]
+    },
+    "Es valida?": {
+      "main": [
+        [{ "node": "Insertar Cita", "type": "main", "index": 0 }],
+        [{ "node": "Respuesta Agenda Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insertar Cita": {
+      "main": [[{ "node": "Log Evento Cita", "type": "main", "index": 0 }]]
+    },
+    "Log Evento Cita": {
+      "main": [[{ "node": "Respuesta Agenda OK", "type": "main", "index": 0 }]]
+    },
+    "Cron Recordatorios": {
+      "main": [
+        [{ "node": "Buscar Citas Proximas", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar Citas Proximas": {
+      "main": [
+        [{ "node": "Registrar Recordatorios", "type": "main", "index": 0 }]
+      ]
+    },
+    "Registrar Recordatorios": {
+      "main": [
+        [
+          {
+            "node": "Insertar Eventos Recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "name": "WF-03 Estado de Caso (Template)",
+  "nodes": [
+    {
+      "name": "Webhook Estado",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "legal-estado-caso",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "name": "Normalizar Solicitud",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const b = $json.body || $json;\nconst clean = (v) => (v ?? '').toString().trim();\nconst caseIdRaw = clean(b.case_id);\nconst caseId = /^\\d+$/.test(caseIdRaw) ? Number(caseIdRaw) : null;\nconst phone = clean(b.phone);\nconst email = clean(b.email);\nconst canSearchByContact = phone !== '' || email !== '';\nconst valid = caseId !== null || canSearchByContact;\nreturn [{json:{\n  valid,\n  error: valid ? '' : 'Debes enviar case_id o (phone/email)',\n  case_id: caseId,\n  phone,\n  email\n}}];"
+      }
+    },
+    {
+      "name": "Es valida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Construir Query Caso",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const req = $json;\nlet whereClause = '';\nif (req.case_id !== null) {\n  whereClause = `c.id = ${req.case_id}`;\n} else if (req.email) {\n  const email = req.email.replace(/'/g, \"''\");\n  whereClause = `cl.email = '${email}'`;\n} else {\n  const phone = req.phone.replace(/'/g, \"''\");\n  whereClause = `cl.phone = '${phone}'`;\n}\nconst query = `SELECT\n  c.id, c.client_id, c.matter_type, c.status, c.priority, c.summary, c.assigned_lawyer, c.opened_at,\n  cl.full_name, cl.email, cl.phone\nFROM cases c\nJOIN clients cl ON cl.id = c.client_id\nWHERE ${whereClause}\nORDER BY c.opened_at DESC\nLIMIT 1;`;\nreturn [{json:{...req, query}}];"
+      }
+    },
+    {
+      "name": "Buscar Caso",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.query }}"
+      }
+    },
+    {
+      "name": "Normalizar Resultado Caso",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nif (rows.length === 0) {\n  return [{ json: { found: false } }];\n}\nconst c = rows[0].json;\nreturn [{ json: { found: true, ...c } }];"
+      }
+    },
+    {
+      "name": "Caso encontrado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.found }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Buscar Proximo Plazo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, title, due_at, status\nFROM deadlines\nWHERE case_id = {{ $('Normalizar Resultado Caso').item.json.id }}\n  AND status = 'pendiente'\nORDER BY due_at ASC\nLIMIT 1;"
+      }
+    },
+    {
+      "name": "Armar Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const c = $('Normalizar Resultado Caso').item.json;\nconst dlRows = $input.all();\nconst hasDeadline = dlRows.length > 0;\nconst deadline = hasDeadline ? dlRows[0].json : null;\nreturn [{json:{\n  status:'ok',\n  case_id:c.id,\n  client_name:c.full_name,\n  matter_type:c.matter_type,\n  case_status:c.status,\n  priority:c.priority,\n  assigned_lawyer:c.assigned_lawyer || null,\n  summary:c.summary || '',\n  next_deadline: deadline ? deadline.due_at : null,\n  next_deadline_title: deadline ? deadline.title : null,\n  next_action: deadline ? 'preparar_documentos_para_plazo' : 'esperar_actualizacion_abogado'\n}}];"
+      }
+    },
+    {
+      "name": "Respuesta OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "name": "Respuesta No Encontrado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'not_found', message: 'No se encontro un caso para los datos enviados' } }}",
+        "options": {
+          "responseCode": 404
+        }
+      }
+    },
+    {
+      "name": "Respuesta Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'error', message: $json.error || 'Solicitud invalida para estado de caso' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Estado": {
+      "main": [[{ "node": "Normalizar Solicitud", "type": "main", "index": 0 }]]
+    },
+    "Normalizar Solicitud": {
+      "main": [[{ "node": "Es valida?", "type": "main", "index": 0 }]]
+    },
+    "Es valida?": {
+      "main": [
+        [{ "node": "Construir Query Caso", "type": "main", "index": 0 }],
+        [{ "node": "Respuesta Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Construir Query Caso": {
+      "main": [[{ "node": "Buscar Caso", "type": "main", "index": 0 }]]
+    },
+    "Buscar Caso": {
+      "main": [
+        [{ "node": "Normalizar Resultado Caso", "type": "main", "index": 0 }]
+      ]
+    },
+    "Normalizar Resultado Caso": {
+      "main": [[{ "node": "Caso encontrado?", "type": "main", "index": 0 }]]
+    },
+    "Caso encontrado?": {
+      "main": [
+        [{ "node": "Buscar Proximo Plazo", "type": "main", "index": 0 }],
+        [{ "node": "Respuesta No Encontrado", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar Proximo Plazo": {
+      "main": [[{ "node": "Armar Respuesta", "type": "main", "index": 0 }]]
+    },
+    "Armar Respuesta": {
+      "main": [[{ "node": "Respuesta OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

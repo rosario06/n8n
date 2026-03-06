@@ -1,0 +1,88 @@
+# Git Ignore - ZedProp Property Management
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# n8n
+.n8n/
+workflows/
+**/node_modules/
+npm-debug.log
+yarn-error.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Sensitive Data
+secrets/
+credentials/
+*.key
+*.pem
+*.crt
+
+# Logs
+logs/
+*.log
+/dist
+
+# Build
+build/
+dist/
+
+# OS
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# PDFs Generated (local storage)
+/data/pdfs/
+/storage/
+
+# Testing
+coverage/
+.jest/
+
+# Package managers
+package-lock.json
+yarn.lock
+
+# Backups
+*.backup
+*.bak
+*~
+
+# Private documentation
+PRIVATE*.md
+/internal/
+
+# Third party integrations cache
+.cache/
+/__pycache__/
+
+# Environment-specific
+production.env
+staging.env
+development.env
+
+# Compiled
+*.pyc
+*.pyo
+*.class
+*.o

@@ -1,0 +1,180 @@
+{
+  "name": "WF-06 Borradores Asistidos (Template)",
+  "nodes": [
+    {
+      "name": "Webhook Borradores",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "legal-borradores",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "name": "Validar Solicitud",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const b = $json.body || $json;\nconst clean = (v) => (v ?? '').toString().trim();\nconst caseId = Number(clean(b.case_id));\nconst docType = clean(b.doc_type) || 'comunicacion_cliente';\nconst instructions = clean(b.instructions);\nconst valid = Number.isFinite(caseId) && caseId > 0;\nreturn [{json:{ valid, error: valid ? '' : 'case_id es requerido', case_id: caseId, doc_type: docType, instructions }}];"
+      }
+    },
+    {
+      "name": "Es valida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Buscar Caso",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT c.id, c.summary, c.matter_type, c.status, c.priority, c.assigned_lawyer, cl.full_name\nFROM cases c\nJOIN clients cl ON cl.id = c.client_id\nWHERE c.id = {{ $json.case_id }}\nLIMIT 1;"
+      }
+    },
+    {
+      "name": "Buscar Eventos Recientes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT event_type, event_payload, created_at\nFROM case_events\nWHERE case_id = {{ $('Validar Solicitud').item.json.case_id }}\nORDER BY created_at DESC\nLIMIT 5;"
+      }
+    },
+    {
+      "name": "Generar Borrador",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const caseRows = $('Buscar Caso').all();\nif (caseRows.length === 0) {\n  return [{ json: { found: false } }];\n}\nconst c = caseRows[0].json;\nconst events = $input.all().map(x => x.json);\nconst req = $('Validar Solicitud').item.json;\nconst lines = [];\nlines.push('BORRADOR PARA REVISION');\nlines.push(`Tipo: ${req.doc_type}`);\nlines.push(`Caso #${c.id} - Cliente: ${c.full_name}`);\nlines.push('');\nlines.push('Objetivo del documento:');\nlines.push(`- ${req.instructions || 'Comunicar estado y proximos pasos del caso.'}`);\nlines.push('');\nlines.push('Contexto resumido:');\nlines.push(`- Asunto: ${c.matter_type}`);\nlines.push(`- Estado: ${c.status}`);\nlines.push(`- Prioridad: ${c.priority}`);\nlines.push(`- Resumen: ${c.summary || 'Sin resumen'}`);\nlines.push('');\nlines.push('Borrador:');\nlines.push('Estimado/a cliente,');\nlines.push('Con base en la informacion disponible, compartimos el estado actual del caso y acciones recomendadas.');\nlines.push('Este texto requiere revision del abogado responsable antes de su envio final.');\nlines.push('');\nlines.push('Puntos a validar por abogado:');\nlines.push('- Exactitud de hechos y fechas');\nlines.push('- Riesgos juridicos y estrategia');\nlines.push('- Adecuacion a normativa aplicable');\nreturn [{json:{ found:true, case_id:c.id, doc_type:req.doc_type, draft_text: lines.join('\\n'), events_used: events.length }}];"
+      }
+    },
+    {
+      "name": "Caso encontrado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.found }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Guardar Evento Borrador",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO case_events (case_id, event_type, event_payload, created_by)\nVALUES (\n  {{ $json.case_id }},\n  'draft_generated',\n  '{{ { doc_type: $json.doc_type, events_used: $json.events_used }.toJsonString().replace(/\\'/g, \"''\") }}'::jsonb,\n  'wf_borradores'\n)\nRETURNING id;"
+      }
+    },
+    {
+      "name": "Respuesta Borrador OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', case_id: $('Generar Borrador').item.json.case_id, doc_type: $('Generar Borrador').item.json.doc_type, draft_text: $('Generar Borrador').item.json.draft_text } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "name": "Respuesta Borrador No Encontrado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'not_found', message: 'No se encontro el caso solicitado para generar borrador' } }}",
+        "options": {
+          "responseCode": 404
+        }
+      }
+    },
+    {
+      "name": "Respuesta Borrador Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'error', message: $json.error || 'Solicitud invalida para borradores' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Borradores": {
+      "main": [[{ "node": "Validar Solicitud", "type": "main", "index": 0 }]]
+    },
+    "Validar Solicitud": {
+      "main": [[{ "node": "Es valida?", "type": "main", "index": 0 }]]
+    },
+    "Es valida?": {
+      "main": [
+        [{ "node": "Buscar Caso", "type": "main", "index": 0 }],
+        [{ "node": "Respuesta Borrador Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar Caso": {
+      "main": [
+        [{ "node": "Buscar Eventos Recientes", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar Eventos Recientes": {
+      "main": [[{ "node": "Generar Borrador", "type": "main", "index": 0 }]]
+    },
+    "Generar Borrador": {
+      "main": [[{ "node": "Caso encontrado?", "type": "main", "index": 0 }]]
+    },
+    "Caso encontrado?": {
+      "main": [
+        [{ "node": "Guardar Evento Borrador", "type": "main", "index": 0 }],
+        [
+          {
+            "node": "Respuesta Borrador No Encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Evento Borrador": {
+      "main": [
+        [{ "node": "Respuesta Borrador OK", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

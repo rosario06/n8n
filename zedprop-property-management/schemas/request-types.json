@@ -1,0 +1,143 @@
+{
+  "requestTypes": {
+    "CONTRACT_REQUEST": {
+      "id": "contract_request",
+      "name": "Solicitar Contrato",
+      "requiredRole": "tenant",
+      "fields": ["tenant_id", "property_id"],
+      "responseTime": "~2-3 seconds (PDF generation)",
+      "workflow": "Generate PDF → Send to WhatsApp",
+      "example": "Hola, necesito una copia de mi contrato"
+    },
+    "PAYMENT": {
+      "id": "payment",
+      "name": "Pagar Renta",
+      "requiredRole": "tenant",
+      "fields": ["tenant_id", "property_id", "amount", "method"],
+      "responseTime": "~3-5 seconds (Xero sync)",
+      "workflow": "Validate → Create Xero Invoice → Update Airtable → Notify Owner",
+      "example": "Pagar $1200 de renta"
+    },
+    "VIEW_INVOICE": {
+      "id": "view_invoice",
+      "name": "Ver Factura Actual",
+      "requiredRole": "tenant",
+      "fields": ["tenant_id"],
+      "responseTime": "~1-2 seconds",
+      "workflow": "Query Airtable → Format → Send",
+      "example": "¿Cuál es mi factura actual?"
+    },
+    "REPORT_ISSUE": {
+      "id": "report_issue",
+      "name": "Reportar Problema",
+      "requiredRole": "tenant",
+      "fields": ["tenant_id", "property_id", "description", "images"],
+      "responseTime": "Immediate acknowledgment",
+      "workflow": "Log in Airtable → Notify Owner/Staff → Create ticket",
+      "example": "La ventana del baño está rota"
+    },
+    "VIEW_TENANTS": {
+      "id": "view_tenants",
+      "name": "Ver Mis Inquilinos",
+      "requiredRole": "owner",
+      "fields": ["owner_id"],
+      "responseTime": "~1-2 seconds",
+      "workflow": "Query Airtable → Filter by owner → Format",
+      "example": "¿Cuántos inquilinos tengo activos?"
+    },
+    "VIEW_PAYMENTS": {
+      "id": "view_payments",
+      "name": "Ver Pagos",
+      "requiredRole": "owner",
+      "fields": ["owner_id", "property_id", "dateRange"],
+      "responseTime": "~2-3 seconds",
+      "workflow": "Query Airtable + Xero → Consolidate → Format",
+      "example": "Muéstrame los pagos del mes"
+    },
+    "CREATE_PROPERTY": {
+      "id": "create_property",
+      "name": "Crear Propiedad",
+      "requiredRole": "owner",
+      "fields": ["name", "address", "type", "monthly_rent", "details"],
+      "responseTime": "~2 seconds",
+      "workflow": "Validate → Save to Airtable → Create in Xero",
+      "example": "Crear nueva propiedad: 456 Oak St, $1500/mes"
+    },
+    "AI_CHAT": {
+      "id": "ai_chat",
+      "name": "Chat Study Buddy",
+      "requiredRole": "tenant",
+      "fields": ["message", "conversation_history"],
+      "responseTime": "~3-5 seconds (GPT-4o latency)",
+      "workflow": "Extract message → Call GPT-4o → Stream response",
+      "example": "¿Cómo resuelvo una integral?"
+    },
+    "VIEW_REPORTS": {
+      "id": "view_reports",
+      "name": "Ver Reportes Financieros",
+      "requiredRole": "owner",
+      "fields": ["owner_id", "report_type", "dateRange"],
+      "responseTime": "~5-10 seconds",
+      "workflow": "Query Xero API → Process data → Generate summary",
+      "example": "Muéstrame el flujo de caja del trimestre"
+    }
+  },
+  "responseTypes": {
+    "TEXT": {
+      "type": "text",
+      "example": "✅ Contrato descargado con éxito"
+    },
+    "PDF": {
+      "type": "document",
+      "example": "Link a PDF descargable"
+    },
+    "MENU": {
+      "type": "menu",
+      "example": "1️⃣ Opción 1\n2️⃣ Opción 2..."
+    },
+    "TABLE": {
+      "type": "text_formatted",
+      "example": "Tabla con datos"
+    },
+    "IMAGE": {
+      "type": "image",
+      "example": "Gráfico o imagen"
+    },
+    "LOCATION": {
+      "type": "location",
+      "example": "Dirección de propiedad"
+    }
+  },
+  "errorHandling": {
+    "INVALID_USER": {
+      "code": 401,
+      "message": "Número no registrado. Contacta soporte.",
+      "action": "Log + Send public menu"
+    },
+    "PERMISSION_DENIED": {
+      "code": 403,
+      "message": "No tienes permisos para esta acción.",
+      "action": "Log attempt + Notify admin"
+    },
+    "INVALID_AMOUNT": {
+      "code": 400,
+      "message": "Por favor, ingresa una cantidad válida.",
+      "action": "Re-prompt user"
+    },
+    "PAYMENT_FAILED": {
+      "code": 402,
+      "message": "Error procesando pago. Intenta nuevamente.",
+      "action": "Log error + Retry queue"
+    },
+    "XERO_SYNC_FAILED": {
+      "code": 503,
+      "message": "Error sincronizando con contabilidad. Reintentando...",
+      "action": "Queue for retry + Notify admin"
+    },
+    "RATE_LIMIT_EXCEEDED": {
+      "code": 429,
+      "message": "Demasiadas solicitudes. Intenta en 1 hora.",
+      "action": "Log + Block user temporarily"
+    }
+  }
+}

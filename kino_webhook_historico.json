@@ -1,0 +1,128 @@
+{
+  "name": "Kino-Brain Webhook Historico (Fase 1 - Sin AI)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kino-historico",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-800, 240],
+      "id": "h-001",
+      "name": "Webhook Historico"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nconst fecha      = body.fecha      || '';\nconst numeros    = body.numeros    || '';\nconst suma_total = body.suma_total || 0;\n\nif (!fecha || !numeros) {\n  return [{ json: { valid: false, error: 'Faltan campos fecha o numeros' } }];\n}\nconst nums = numeros.split(',');\nif (nums.length !== 20) {\n  return [{ json: { valid: false, error: 'Se esperan 20 numeros, llegaron ' + nums.length } }];\n}\nreturn [{ json: { valid: true, fecha, numeros, suma_total: parseInt(suma_total) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-560, 240],
+      "id": "h-002",
+      "name": "Validar Payload"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-valid",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-320, 240],
+      "id": "h-003",
+      "name": "Es valido?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO sorteos (fecha, numeros, suma_total)\nVALUES ('{{ $json.fecha }}', '{{ $json.numeros }}', {{ $json.suma_total }})\nON CONFLICT (fecha) DO NOTHING\nRETURNING id, fecha, 'insertado' AS status;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-80, 160],
+      "id": "h-004",
+      "name": "Insert Sorteo",
+      "credentials": {
+        "postgres": {
+          "id": "VdcTWLHwKkYlGTIj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nconst inserted = rows.length > 0 && rows[0].json.id;\nconst fecha = $('Validar Payload').item.json.fecha;\n\nreturn [{\n  json: {\n    status:  inserted ? 'ok' : 'duplicado',\n    message: inserted\n      ? 'Sorteo ' + rows[0].json.fecha + ' insertado con id ' + rows[0].json.id\n      : 'Registro ya existia (ignorado)',\n    fecha:   inserted ? rows[0].json.fecha : fecha\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [160, 160],
+      "id": "h-005",
+      "name": "Preparar Respuesta"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [400, 240],
+      "id": "h-006",
+      "name": "Responder al Python"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'error', message: $json.error || 'Payload invalido' } }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [-80, 340],
+      "id": "h-007",
+      "name": "Respuesta Error"
+    }
+  ],
+  "connections": {
+    "Webhook Historico": {
+      "main": [[{ "node": "Validar Payload", "type": "main", "index": 0 }]]
+    },
+    "Validar Payload": {
+      "main": [[{ "node": "Es valido?", "type": "main", "index": 0 }]]
+    },
+    "Es valido?": {
+      "main": [
+        [{ "node": "Insert Sorteo",   "type": "main", "index": 0 }],
+        [{ "node": "Respuesta Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insert Sorteo": {
+      "main": [[{ "node": "Preparar Respuesta", "type": "main", "index": 0 }]]
+    },
+    "Preparar Respuesta": {
+      "main": [[{ "node": "Responder al Python", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "instanceId": "931050f97149b39d686f06521074e89967a84ae13ec1ff2a78f488d3f9e2532b"
+  },
+  "tags": []
+}

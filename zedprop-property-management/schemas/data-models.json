@@ -1,0 +1,210 @@
+{
+  "airtableBase": "YOUR_BASE_ID",
+  "tables": {
+    "Properties": {
+      "name": "Properties",
+      "description": "Todas las propiedades gestionadas",
+      "fields": {
+        "id": "Text (Key)",
+        "name": "Text",
+        "address": "Text",
+        "city": "Text",
+        "state": "Text",
+        "zipCode": "Text",
+        "type": "Select (Single House, Apartment, Studio, etc)",
+        "bedrooms": "Number",
+        "bathrooms": "Number",
+        "monthlyRent": "Number (Currency)",
+        "owner": "Link to Owners",
+        "tenants": "Link to Tenants (multiple)",
+        "status": "Select (Active, Inactive, Maintenance)",
+        "notes": "Long Text",
+        "createdDate": "Date",
+        "lastModified": "Date"
+      }
+    },
+    "Owners": {
+      "name": "Owners",
+      "description": "Propietarios de propiedades",
+      "fields": {
+        "id": "Text (Key)",
+        "firstName": "Text",
+        "lastName": "Text",
+        "email": "Email",
+        "phone": "Phone",
+        "whatsappPhone": "Text",
+        "properties": "Link to Properties",
+        "bankAccount": "Text",
+        "taxId": "Text",
+        "xeroContactId": "Text",
+        "preferredCurrency": "Select (USD, EUR, etc)",
+        "notificationSettings": "JSON",
+        "createdDate": "Date"
+      }
+    },
+    "Tenants": {
+      "name": "Tenants",
+      "description": "Inquilinos/Estudiantes",
+      "fields": {
+        "id": "Text (Key)",
+        "firstName": "Text",
+        "lastName": "Text",
+        "email": "Email",
+        "phone": "Phone",
+        "whatsappPhone": "Text",
+        "property": "Link to Properties",
+        "owner": "Link to Owners",
+        "checkInDate": "Date",
+        "checkOutDate": "Date",
+        "monthlyRent": "Number (Currency)",
+        "status": "Select (Active, Inactive, Departed)",
+        "contractUrl": "URL",
+        "emergencyContact": "Text",
+        "deposits": "Number (Currency)",
+        "notes": "Long Text",
+        "createdDate": "Date"
+      }
+    },
+    "Payments": {
+      "name": "Payments",
+      "description": "Historial de pagos de renta",
+      "fields": {
+        "id": "Text (Key)",
+        "tenant": "Link to Tenants",
+        "property": "Link to Properties",
+        "owner": "Link to Owners",
+        "amount": "Number (Currency)",
+        "dueDate": "Date",
+        "paidDate": "Date",
+        "status": "Select (Pending, Paid, Overdue, Partial)",
+        "paymentMethod": "Select (WhatsApp, Bank Transfer, Cash, etc)",
+        "xeroInvoiceId": "Text",
+        "notes": "Long Text",
+        "createdDate": "Date"
+      }
+    },
+    "Contracts": {
+      "name": "Contracts",
+      "description": "Contratos de arrendamiento",
+      "fields": {
+        "id": "Text (Key)",
+        "tenant": "Link to Tenants",
+        "property": "Link to Properties",
+        "owner": "Link to Owners",
+        "startDate": "Date",
+        "endDate": "Date",
+        "monthlyRent": "Number (Currency)",
+        "securityDeposit": "Number (Currency)",
+        "terms": "Long Text",
+        "templateVersion": "Text",
+        "pdfUrl": "URL",
+        "status": "Select (Draft, Active, Completed, Terminated)",
+        "signedDate": "Date",
+        "createdDate": "Date"
+      }
+    },
+    "Messages": {
+      "name": "Messages",
+      "description": "Registro de todos los mensajes y transacciones",
+      "fields": {
+        "id": "Text (Key)",
+        "from": "Text (Phone)",
+        "userType": "Select (Owner, Tenant, Staff, Unknown)",
+        "userId": "Link to [Owners/Tenants/Staff]",
+        "messageType": "Select (contract_request, payment, invoice, issue, ai_chat, etc)",
+        "messageBody": "Long Text",
+        "response": "Long Text",
+        "status": "Select (Pending, Processing, Completed, Failed)",
+        "processingTime": "Number (milliseconds)",
+        "errorMessage": "Text",
+        "createdDate": "Date",
+        "resolvedDate": "Date"
+      }
+    },
+    "Issues": {
+      "name": "Issues",
+      "description": "Problemas/mantenimiento reportados",
+      "fields": {
+        "id": "Text (Key)",
+        "tenant": "Link to Tenants",
+        "property": "Link to Properties",
+        "description": "Long Text",
+        "severity": "Select (Low, Medium, High, Critical)",
+        "category": "Select (Plumbing, Electrical, Structural, Cleanliness, etc)",
+        "imageUrl": "Attachment",
+        "status": "Select (Open, In Progress, Resolved, Closed)",
+        "assignedTo": "Link to Staff",
+        "createdDate": "Date",
+        "resolvedDate": "Date",
+        "notes": "Long Text"
+      }
+    },
+    "Staff": {
+      "name": "Staff",
+      "description": "Personal de gestión",
+      "fields": {
+        "id": "Text (Key)",
+        "firstName": "Text",
+        "lastName": "Text",
+        "email": "Email",
+        "phone": "Phone",
+        "role": "Select (Manager, Technician, Support)",
+        "properties": "Link to Properties (multiple)",
+        "permissions": "JSON",
+        "createdDate": "Date"
+      }
+    },
+    "DocumentTemplates": {
+      "name": "DocumentTemplates",
+      "description": "Templates para PDFs dinámicos",
+      "fields": {
+        "id": "Text (Key)",
+        "name": "Text",
+        "type": "Select (Contract, Invoice, Notice)",
+        "htmlContent": "Long Text",
+        "language": "Select (English, Spanish, etc)",
+        "version": "Number",
+        "isActive": "Checkbox",
+        "lastModified": "Date",
+        "createdDate": "Date"
+      }
+    },
+    "Automations": {
+      "name": "Automations",
+      "description": "Reglas y automaciones configuradas",
+      "fields": {
+        "id": "Text (Key)",
+        "name": "Text",
+        "trigger": "Text (payment_due, tenant_added, etc)",
+        "action": "Text (send_message, create_invoice, etc)",
+        "isActive": "Checkbox",
+        "configuration": "JSON",
+        "createdDate": "Date"
+      }
+    }
+  },
+  "views": {
+    "PropertiesByStatus": {
+      "type": "filter_view",
+      "table": "Properties",
+      "filter": "status = 'Active'"
+    },
+    "PendingPayments": {
+      "type": "filter_view",
+      "table": "Payments",
+      "filter": "status = 'Pending' AND dueDate < TODAY()"
+    },
+    "ActiveTenants": {
+      "type": "filter_view",
+      "table": "Tenants",
+      "filter": "status = 'Active'"
+    },
+    "RecentMessages": {
+      "type": "sort_view",
+      "table": "Messages",
+      "sortBy": "createdDate",
+      "sortDirection": "desc",
+      "limit": 100
+    }
+  }
+}

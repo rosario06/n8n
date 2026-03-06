@@ -1,0 +1,121 @@
+{
+  "name": "WF-02 Intake Legal (Template)",
+  "nodes": [
+    {
+      "name": "Webhook Intake",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "legal-intake",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "name": "Normalizar Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const b = $json.body || $json;\nconst clean = (v) => (v ?? '').toString().trim();\nconst matter = clean(b.matter_type).toLowerCase() || 'otro';\nconst priorityRaw = clean(b.priority).toLowerCase();\nconst allowedPriority = ['baja','media','alta','critica'];\nconst priority = allowedPriority.includes(priorityRaw) ? priorityRaw : 'media';\nconst summary = clean(b.summary || b.text || '');\nconst hasContact = clean(b.phone) !== '' || clean(b.email) !== '';\nconst consent = b.consent_data_processing === true;\nconst valid = clean(b.full_name) !== '' && hasContact && consent && summary !== '';\nreturn [{\n  json: {\n    valid,\n    error: valid ? '' : 'Campos requeridos: full_name, (phone o email), consentimiento=true y summary/text',\n    full_name: clean(b.full_name),\n    phone: clean(b.phone),\n    email: clean(b.email),\n    preferred_channel: clean(b.preferred_channel) || 'whatsapp',\n    matter_type: matter,\n    priority,\n    summary,\n    source_channel: clean(b.source_channel) || 'whatsapp'\n  }\n}];"
+      }
+    },
+    {
+      "name": "Es valido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Upsert Cliente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO clients (full_name, email, phone, preferred_channel, consent_data_processing, updated_at)\nVALUES (\n  '{{ $json.full_name.replace(/\\'/g, \"''\") }}',\n  {{ $json.email ? \"'\" + $json.email.replace(/\\'/g, \"''\") + \"'\" : 'NULL' }},\n  {{ $json.phone ? \"'\" + $json.phone.replace(/\\'/g, \"''\") + \"'\" : 'NULL' }},\n  '{{ $json.preferred_channel.replace(/\\'/g, \"''\") }}',\n  TRUE,\n  NOW()\n)\nON CONFLICT (email) DO UPDATE\nSET\n  full_name = EXCLUDED.full_name,\n  phone = COALESCE(EXCLUDED.phone, clients.phone),\n  preferred_channel = EXCLUDED.preferred_channel,\n  consent_data_processing = TRUE,\n  updated_at = NOW()\nRETURNING id, full_name, email, phone;"
+      }
+    },
+    {
+      "name": "Insert Caso",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO cases (client_id, matter_type, status, priority, summary, assigned_lawyer, opened_at)\nVALUES (\n  {{ $('Upsert Cliente').item.json.id }},\n  '{{ $('Normalizar Payload').item.json.matter_type.replace(/\\'/g, \"''\") }}',\n  'nuevo',\n  '{{ $('Normalizar Payload').item.json.priority }}',\n  '{{ $('Normalizar Payload').item.json.summary.replace(/\\'/g, \"''\") }}',\n  NULL,\n  NOW()\n)\nRETURNING id, client_id, matter_type, status, priority, summary, opened_at;"
+      }
+    },
+    {
+      "name": "Insert Evento Intake",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO case_events (case_id, event_type, event_payload, created_by)\nVALUES (\n  {{ $('Insert Caso').item.json.id }},\n  'intake_created',\n  '{{ {\n    source_channel: $('Normalizar Payload').item.json.source_channel,\n    summary: $('Insert Caso').item.json.summary,\n    matter_type: $('Insert Caso').item.json.matter_type,\n    priority: $('Insert Caso').item.json.priority\n  }.toJsonString().replace(/\\'/g, \"''\") }}'::jsonb,\n  'agent_intake'\n)\nRETURNING id;"
+      }
+    },
+    {
+      "name": "Respuesta OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', case_id: $('Insert Caso').item.json.id, client_id: $('Insert Caso').item.json.client_id, priority: $('Insert Caso').item.json.priority, next_step: 'asignar_abogado' } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "name": "Respuesta Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'error', message: $json.error || 'Payload de intake invalido' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Intake": {
+      "main": [[{ "node": "Normalizar Payload", "type": "main", "index": 0 }]]
+    },
+    "Normalizar Payload": {
+      "main": [[{ "node": "Es valido?", "type": "main", "index": 0 }]]
+    },
+    "Es valido?": {
+      "main": [
+        [{ "node": "Upsert Cliente", "type": "main", "index": 0 }],
+        [{ "node": "Respuesta Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Upsert Cliente": {
+      "main": [[{ "node": "Insert Caso", "type": "main", "index": 0 }]]
+    },
+    "Insert Caso": {
+      "main": [[{ "node": "Insert Evento Intake", "type": "main", "index": 0 }]]
+    },
+    "Insert Evento Intake": {
+      "main": [[{ "node": "Respuesta OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

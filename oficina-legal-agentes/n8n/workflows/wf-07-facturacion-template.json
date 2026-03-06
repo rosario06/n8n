@@ -1,0 +1,163 @@
+{
+  "name": "WF-07 Facturacion y Cobros (Template)",
+  "nodes": [
+    {
+      "name": "Webhook Facturacion",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "legal-facturacion",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "name": "Validar Factura",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const b = $json.body || $json;\nconst clean = (v) => (v ?? '').toString().trim();\nconst clientId = Number(clean(b.client_id));\nconst caseId = clean(b.case_id) ? Number(clean(b.case_id)) : null;\nconst amount = Number(clean(b.amount));\nconst dueDate = clean(b.due_date);\nconst currency = clean(b.currency) || 'DOP';\nconst valid = Number.isFinite(clientId) && Number.isFinite(amount) && amount > 0;\nreturn [{json:{\n  valid,\n  error: valid ? '' : 'Campos requeridos: client_id y amount>0',\n  client_id: clientId,\n  case_id: Number.isFinite(caseId) ? caseId : null,\n  amount,\n  due_date: dueDate || null,\n  currency\n}}];"
+      }
+    },
+    {
+      "name": "Es valida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Insertar Factura",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO invoices (case_id, client_id, amount, currency, status, due_date, issued_at)\nVALUES (\n  {{ $json.case_id ? $json.case_id : 'NULL' }},\n  {{ $json.client_id }},\n  {{ $json.amount }},\n  '{{ $json.currency.replace(/\\'/g, \"''\") }}',\n  'pendiente',\n  {{ $json.due_date ? \"'\" + $json.due_date + \"'\" : 'NULL' }},\n  NOW()\n)\nRETURNING id, case_id, client_id, amount, currency, status, due_date;"
+      }
+    },
+    {
+      "name": "Log Evento Factura",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO case_events (case_id, event_type, event_payload, created_by)\nVALUES (\n  {{ $('Insertar Factura').item.json.case_id ? $('Insertar Factura').item.json.case_id : 'NULL' }},\n  'invoice_created',\n  '{{ { invoice_id: $('Insertar Factura').item.json.id, amount: $('Insertar Factura').item.json.amount, currency: $('Insertar Factura').item.json.currency, due_date: $('Insertar Factura').item.json.due_date }.toJsonString().replace(/\\'/g, \"''\") }}'::jsonb,\n  'wf_facturacion'\n)\nRETURNING id;"
+      }
+    },
+    {
+      "name": "Respuesta Factura OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', invoice_id: $('Insertar Factura').item.json.id, amount: $('Insertar Factura').item.json.amount, due_date: $('Insertar Factura').item.json.due_date, payment_status: $('Insertar Factura').item.json.status } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "name": "Respuesta Factura Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'error', message: $json.error || 'Solicitud invalida para facturacion' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    },
+    {
+      "name": "Cron Cobros",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Facturas Vencidas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, case_id, client_id, amount, currency, due_date\nFROM invoices\nWHERE status = 'pendiente'\n  AND due_date IS NOT NULL\n  AND due_date < CURRENT_DATE\nORDER BY due_date ASC\nLIMIT 300;"
+      }
+    },
+    {
+      "name": "Registrar Alertas Cobro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "return $input.all().map(i => ({ json: {\n  case_id: i.json.case_id || null,\n  payload: { invoice_id: i.json.id, amount: i.json.amount, currency: i.json.currency, due_date: i.json.due_date },\n  event_type: 'invoice_overdue'\n}}));"
+      }
+    },
+    {
+      "name": "Insertar Eventos Cobro",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO case_events (case_id, event_type, event_payload, created_by)\nVALUES (\n  {{ $json.case_id ? $json.case_id : 'NULL' }},\n  '{{ $json.event_type }}',\n  '{{ $json.payload.toJsonString().replace(/\\'/g, \"''\") }}'::jsonb,\n  'wf_facturacion_cron'\n);"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Facturacion": {
+      "main": [[{ "node": "Validar Factura", "type": "main", "index": 0 }]]
+    },
+    "Validar Factura": {
+      "main": [[{ "node": "Es valida?", "type": "main", "index": 0 }]]
+    },
+    "Es valida?": {
+      "main": [
+        [{ "node": "Insertar Factura", "type": "main", "index": 0 }],
+        [{ "node": "Respuesta Factura Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insertar Factura": {
+      "main": [[{ "node": "Log Evento Factura", "type": "main", "index": 0 }]]
+    },
+    "Log Evento Factura": {
+      "main": [[{ "node": "Respuesta Factura OK", "type": "main", "index": 0 }]]
+    },
+    "Cron Cobros": {
+      "main": [[{ "node": "Facturas Vencidas", "type": "main", "index": 0 }]]
+    },
+    "Facturas Vencidas": {
+      "main": [
+        [{ "node": "Registrar Alertas Cobro", "type": "main", "index": 0 }]
+      ]
+    },
+    "Registrar Alertas Cobro": {
+      "main": [
+        [{ "node": "Insertar Eventos Cobro", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

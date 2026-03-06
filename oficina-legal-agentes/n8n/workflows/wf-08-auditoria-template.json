@@ -1,0 +1,99 @@
+{
+  "name": "WF-08 Auditoria de Actividad (Template)",
+  "nodes": [
+    {
+      "name": "Webhook Auditoria",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "legal-auditoria",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "name": "Normalizar Evento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const b = $json.body || $json;\nconst clean = (v) => (v ?? '').toString().trim();\nconst actorType = clean(b.actor_type) || 'system';\nconst actorId = clean(b.actor_id) || 'unknown';\nconst action = clean(b.action);\nconst resourceType = clean(b.resource_type) || 'generic';\nconst resourceId = clean(b.resource_id) || 'n/a';\nconst metadata = b.metadata && typeof b.metadata === 'object' ? b.metadata : {};\nconst valid = action !== '';\nreturn [{json:{\n  valid,\n  error: valid ? '' : 'action es requerido',\n  actor_type: actorType,\n  actor_id: actorId,\n  action,\n  resource_type: resourceType,\n  resource_id: resourceId,\n  metadata\n}}];"
+      }
+    },
+    {
+      "name": "Es valido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Insertar Auditoria",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO audit_logs (actor_type, actor_id, action, resource_type, resource_id, metadata, created_at)\nVALUES (\n  '{{ $json.actor_type.replace(/\\'/g, \"''\") }}',\n  '{{ $json.actor_id.replace(/\\'/g, \"''\") }}',\n  '{{ $json.action.replace(/\\'/g, \"''\") }}',\n  '{{ $json.resource_type.replace(/\\'/g, \"''\") }}',\n  '{{ $json.resource_id.replace(/\\'/g, \"''\") }}',\n  '{{ $json.metadata.toJsonString().replace(/\\'/g, \"''\") }}'::jsonb,\n  NOW()\n)\nRETURNING id, created_at;"
+      }
+    },
+    {
+      "name": "Respuesta Auditoria OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', audit_id: $json.id, created_at: $json.created_at } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "name": "Respuesta Auditoria Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'error', message: $json.error || 'Evento de auditoria invalido' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Auditoria": {
+      "main": [[{ "node": "Normalizar Evento", "type": "main", "index": 0 }]]
+    },
+    "Normalizar Evento": {
+      "main": [[{ "node": "Es valido?", "type": "main", "index": 0 }]]
+    },
+    "Es valido?": {
+      "main": [
+        [{ "node": "Insertar Auditoria", "type": "main", "index": 0 }],
+        [{ "node": "Respuesta Auditoria Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insertar Auditoria": {
+      "main": [
+        [{ "node": "Respuesta Auditoria OK", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

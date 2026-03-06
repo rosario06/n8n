@@ -1,0 +1,52 @@
+{
+  "name": "WF-01 Recepcion Omnicanal (Template)",
+  "nodes": [
+    {
+      "name": "Webhook Entrada",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "legal-recepcion"
+      }
+    },
+    {
+      "name": "Normalizar Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const b = $json.body || $json;\nreturn [{json:{channel:b.channel||'whatsapp', text:b.text||'', phone:b.phone||'', email:b.email||'', full_name:b.full_name||''}}];"
+      }
+    },
+    {
+      "name": "Clasificar Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const t = ($json.text||'').toLowerCase();\nlet intent='otro';\nif(t.includes('cita')) intent='cita';\nelse if(t.includes('factura')||t.includes('pago')) intent='facturacion';\nelse if(t.includes('estado')||t.includes('caso')) intent='estado_caso';\nelse if(t.includes('urgente')||t.includes('hoy')||t.includes('mañana')) intent='urgencia';\nelse if(t.length>0) intent='consulta_nueva';\nreturn [{json:{...$json,intent}}];"
+      }
+    },
+    {
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', intent: $json.intent } }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Entrada": {
+      "main": [[{ "node": "Normalizar Payload", "type": "main", "index": 0 }]]
+    },
+    "Normalizar Payload": {
+      "main": [[{ "node": "Clasificar Intent", "type": "main", "index": 0 }]]
+    },
+    "Clasificar Intent": {
+      "main": [[{ "node": "Responder", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

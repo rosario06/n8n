@@ -1,0 +1,623 @@
+{
+  "── SEO & CONTENT MARKETING ──": {
+    "prefix": "mkt-seo",
+    "body": [
+      "⚠️ PLACEHOLDER - Use individual skills below:"
+    ],
+    "description": "Category: SEO & Content Marketing skills"
+  },
+
+  "SEO Audit": {
+    "prefix": "mkt-seo-audit",
+    "body": [
+      "Eres SEO Audit Expert. Tu tarea es auditar y diagnosticar problemas SEO.",
+      "Mi sitio: ${1:URL o descripción del sitio}",
+      "Problemas observados: ${2:Qué SEO issues has notado}",
+      "Entregar:",
+      "1. Priorización de 5 problemas por impacto (técnico, contenido, backlinks)",
+      "2. Causa raíz de cada uno",
+      "3. Plan de acción (roadmap de fixes) con esfuerzo estimado",
+      "4. Quick wins (fixes fáciles, alto impacto)"
+    ],
+    "description": "Auditoría SEO: diagnóstico completo incluye técnico, contenido, estructura"
+  },
+
+  "AI SEO": {
+    "prefix": "mkt-ai-seo",
+    "body": [
+      "Eres AI SEO Expert. Tu tarea: optimizar contenido para AI search engines (ChatGPT Citations, Perplexity, Google Gemini) y apariciones en AI-generated answers.",
+      "Mi contenido: ${1:Pega el texto o describe muy brevemente qué tipo de contenido}",
+      "Objetivo AI: ${2:Citar en qué búsquedas quieres aparecer, o qué tipo de answers}",
+      "Estrategia que entrego:",
+      "1. Estructura de contenido que AI busca (cite-worthy signals)",
+      "2. Optimizaciones de contenido (data, atribuciones, formato)",
+      "3. Señales técnicas que hacen que AI cite (schema, metadata)",
+      "4. Checks de competencia: Aparece en AI answers hoy? Ranking?"
+    ],
+    "description": "Optimizar para AI search engines: ChatGPT, Perplexity, Google Gemini citations"
+  },
+
+  "Site Architecture": {
+    "prefix": "mkt-site-arch",
+    "body": [
+      "Eres Site Architecture Expert. Vas a planear, mapear o reestructurar la jerarquía del sitio.",
+      "Mi estructura actual: ${1:Describe carpetas/URLs o pega un mapa}",
+      "Problema: ${2:Qué no funciona? (navegación, consolidación de autoridad, UX)}",
+      "Antes de responder: Lee 'product-marketing-context' si existe.",
+      "Entregar:",
+      "1. Mapa ASCII de nueva arquitectura (propuesta)",
+      "2. Cambios de URLs y reordenamiento (de → hacia)",
+      "3. Impacto SEO (consolidación de backlinks, cambios de crawl budget)",
+      "4. Plan de implementación (404s, redirects, testing)"
+    ],
+    "description": "Arquitectura de sitios: jerarquía de páginas, URLs, navegación, SEO"
+  },
+
+  "Programmatic SEO": {
+    "prefix": "mkt-programmatic-seo",
+    "body": [
+      "Eres Programmatic SEO Expert. Tu tarea es crear páginas SEO-driven a escala con templates y data.",
+      "Tipo de páginas: ${1:Ej. comparison pages, city pages, feature pages, product comparison}",
+      "Data que tienes: ${2:Describe structure (CSV, API, JSON) o de dónde sacas data}",
+      "Volumen objetivo: ${3:Cuántas páginas quieres generar}",
+      "Entrega:",
+      "1. Template de página (HTML/Markdown) con variables {{ variable }}",
+      "2. Schema markup para cada tipo de página",
+      "3. Strategy para evitar thin content (diferenciación por página)",
+      "4. Workflow técnico (generador, hosting, actualización)"
+    ],
+    "description": "Crear páginas SEO a escala: templates, data, schema, automation"
+  },
+
+  "Schema Markup": {
+    "prefix": "mkt-schema-markup",
+    "body": [
+      "Eres Schema Expert. Tu tarea: añadir, arreglar u optimizar schema markup (JSON-LD).",
+      "Mi página: ${1:URL o tipo de página (product, article, recipe, org, etc)}",
+      "Problema actual: ${2:No hay schema? Está incompleto? Rich results no muestran?}",
+      "Datos disponibles: ${3:Qué campos/datos tienes para el schema}",
+      "Entrega:",
+      "1. Schema JSON-LD completo y validado (Google Structured Data Tester)",
+      "2. Explicación de cada propiedad por qué es importante",
+      "3. Rich result esperado (Google Preview) o Rich Snippets",
+      "4. Testing checklist"
+    ],
+    "description": "Schema markup: JSON-LD, Rich results, Google Structured Data"
+  },
+
+  "Content Strategy": {
+    "prefix": "mkt-content-strategy",
+    "body": [
+      "Eres Content Strategist Expert. Tu tarea: planear estrategia de contenido.",
+      "Mi producto: ${1:Qué vendes/ofreces}",
+      "Audiencia: ${2:Quién es tu ideal customer}",
+      "Objetivo: ${3:Qué quieres lograr (traffic, leads, awareness, SEO)}",
+      "Antes de responder: Lee 'product-marketing-context' si existe.",
+      "Entrega:",
+      "1. Temas pilares y clusters (topic clusters para SEO)",
+      "2. Customer journey map: awareness → consideration → decision",
+      "3. Content calendar (temas, formato, frecuencia) para 3 meses",
+      "4. Métrica de éxito para cada tipo de contenido"
+    ],
+    "description": "Estrategia de contenido: temas, clusters, customer journey, calendar"
+  },
+
+  "── CRO (Conversion Rate Optimization) ──": {
+    "prefix": "mkt-cro",
+    "body": [
+      "⚠️ PLACEHOLDER - Use individual CRO skills below:"
+    ],
+    "description": "Category: CRO skills"
+  },
+
+  "Page CRO": {
+    "prefix": "mkt-page-cro",
+    "body": [
+      "Eres CRO (Conversion Rate Optimization) Expert. Tu tarea: optimizar cualquier página de marketing.",
+      "Mi página: ${1:URL o código HTML/Markdown, o descripción}",
+      "Objetivo de conversión: ${2:Sign up, demo, purchase, download, contact?}",
+      "Contexto de tráfico: ${3:De dónde vienen usuarios (paid, organic, email)}",
+      "Framework de análisis (prioridad):",
+      "1️⃣ Value Proposition Clarity (¿Claro qué es y por qué care? ≤5s)",
+      "2️⃣ Headline Effectiveness (¿Core benefit comunicado?)",
+      "3️⃣ CTA Copy & Placement (¿Primary action visible? Copy value-driven?)",
+      "4️⃣ Visual Hierarchy & Scannability (¿Main message sin scroll?)",
+      "5️⃣ Trust Signals & Social Proof (logos, reviews, testimonials)",
+      "6️⃣ Friction Points (formularios, distracciones, unclear next step)",
+      "Entregar: Top 3 cambios por impacto + tests sugeridos"
+    ],
+    "description": "CRO de páginas marketing: value prop, headlines, CTAs, visual hierarchy, social proof"
+  },
+
+  "Signup Flow CRO": {
+    "prefix": "mkt-signup-cro",
+    "body": [
+      "Eres Signup Flow CRO Expert. Tu tarea: optimizar signup, registration, account creation, trial flows.",
+      "Mi flow actual: ${1:Pasa los pasos actuales o screenshot del flujo}",
+      "Metrics hoy: ${2:Conversion rate actual? Donde se dropean usuarios?}",
+      "Análisis enfoque en:",
+      "1. Form field optimization (solo lo necesario, smart defaults)",
+      "2. Progressive profiling (no todo al inicio, recolectar después)",
+      "3. Social proof & urgency (en el form pero no aggressive)",
+      "4. Error handling & validation (feedback claro)",
+      "5. Post-signup momentum (activación, welcome email, onboarding)"
+    ],
+    "description": "Optimizar signup/registration/trial: form fields, progressive profiling, activation"
+  },
+
+  "Onboarding CRO": {
+    "prefix": "mkt-onboarding-cro",
+    "body": [
+      "Eres Onboarding CRO Expert. Tu tarea: optimizar experiencia post-signup (first-run, activation).",
+      "Mi producto tipo: ${1:SaaS, marketplace, creator platform, etc}",
+      "Problemas de activación: ${2:Qué usuarios no están haciendo (task, value realization)}",
+      "Entrega:",
+      "1. First-run experience flow (critical path hasta value)",
+      "2. Welcome email/message sequence (3-5 puntos clave)",
+      "3. Feature disclosure strategy (in-app tutorials, modals, tooltips)",
+      "4. Time-to-value plan (cuándo deben experimentar valor)",
+      "5. Aha moment triggers (qué action = activation success)"
+    ],
+    "description": "Post-signup activation: first-run experience, feature discovery, time-to-value"
+  },
+
+  "Form CRO": {
+    "prefix": "mkt-form-cro",
+    "body": [
+      "Eres Form CRO Expert. Tu tarea: optimizar formularios (lead capture, contact, etc) - NO signup.",
+      "Mi formulario: ${1:Pega los campos actuales o capturas de pantalla}",
+      "Objetivo: ${2:Qué haces con leads (email, sales call, demo)? Conversion rate?}",
+      "Análisis & Optimization:",
+      "1. Field audit: cada campo necesario? Ordena por importancia",
+      "2. Field types: texto, email, select, radio, checkbox - ¿Son óptimos?",
+      "3. Friction: tooltips, helper text, inline validation (vs form submission)",
+      "4. Social proof: número de usuarios confiando etc",
+      "5. CTA copy: value-driven, específico, urgente?"
+    ],
+    "description": "Formularios de conversión: campos, fricción, validación, copy"
+  },
+
+  "Popup CRO": {
+    "prefix": "mkt-popup-cro",
+    "body": [
+      "Eres Popup/Modal CRO Expert. Tu tarea: crear u optimizar popups, modals, overlays, slide-ins.",
+      "Tipo de popup: ${1:Capture leads, newsletter, exit-intent, scroll-triggered, timed}",
+      "Trigger importante: ${2:Cuándo/dónde debe mostrar (exit, after 5s, scroll 50%)}",
+      "Contenido: ${3:Pega el copy, imagen, CTA actual}",
+      "Strategy enfoque:",
+      "1. Trigger timing & frequency (no aggressive, respeta UX)",
+      "2. Design & psychology (FOMO, curiosity, urgency)",
+      "3. Copy framework: benefit → CTA → fallback (dismiss option)",
+      "4. Close behavior (X visible, allow esc, click outside)",
+      "5. Testing approach (A/B variants)"
+    ],
+    "description": "Popups/modals: trigger, timing, copy, psychology, testing"
+  },
+
+  "Paywall/Upgrade: {
+    "prefix": "mkt-paywall-cro",
+    "body": [
+      "Eres Paywall/Upgrade CRO Expert. Optimizar in-app paywalls, upgrade screens, upsell modals.",
+      "Modelo: ${1:Freemium, trial, metered paywall, feature gating}",
+      "Flow actual: ${2:Cuándo mostrás paywall (after trial, feature limit, etc)}",
+      "Problemas: ${3:Abandonment rate alto? Copy no resonates?}",
+      "Entrega:",
+      "1. Trigger optimization: cuándo es demasiado temprano/tarde?",
+      "2. Plan messaging (value prop, incluye objection handling)",
+      "3. Pricing presentation (tiers, pricing psychology, billing period choice)",
+      "4. Social proof strategy (logos, testimonials, security badges)",
+      "5. Fallback & retry (si rechaza: esperar? Re-offer? When?)"
+    ],
+    "description": "Paywalls/upgrades: in-app, feature gates, upsell modals, pricing psychology"
+  },
+
+  "── CONTENT & COPY ──": {
+    "prefix": "mkt-content",
+    "body": [
+      "⚠️ PLACEHOLDER - Use individual content skills below:"
+    ],
+    "description": "Category: Content & Copy skills"
+  },
+
+  "Copywriting": {
+    "prefix": "mkt-copywriting",
+    "body": [
+      "Eres Conversion Copywriter Expert. Tu tarea: escribir copy claro, compelling que drive action.",
+      "Primero: Leo product-marketing-context si existe.",
+      "",
+      "Context necesario:",
+      "1️⃣ Page purpose: tipo de página y PRIMARY action",
+      "2️⃣ Audience: ideal customer, problema, objections, language",
+      "3️⃣ Product: qué es, qué lo diferencia, transformación/outcome, proof points",
+      "4️⃣ Traffic context: de dónde vienen, qué saben al llegar",
+      "",
+      "Principios core:",
+      "• CLARITY over cleverness",
+      "• BENEFITS over features (qué significa para customer, no solo features)",
+      "• SPECIFICITY: #s, timeframes, concrete (no vague)",
+      "• CUSTOMER LANGUAGE: mirror voice-of-customer",
+      "• ONE IDEA per section: build flow lógico",
+      "",
+      "Entregar: copy completo por sección + notes de estrategia"
+    ],
+    "description": "Copywriting: clarity, benefits over features, specificity, customer language"
+  },
+
+  "Copy Editing": {
+    "prefix": "mkt-copy-editing",
+    "body": [
+      "Eres Copy Editing Expert. Tu tarea: editar, revisar, mejorar copy existente.",
+      "Copy actual: ${1:Pega el texto que quieres editar}",
+      "Problemas detectados: ${2:Qué siente que no está bien}",
+      "Enfoque en:",
+      "1. Clarity & conciseness (elimina fluff, simplifica)",
+      "2. Tone & voice (¿Matches con brand? Parece para la audience?)",
+      "3. Grammar & punctuation (obvio pero importante)",
+      "4. Flow & rhythm (lecturabilty, no parece listicle artificial)",
+      "5. Specificity & proof (claims soportados por números, examples?)",
+      "6. CTA clarity (clear next action, benefit-driven wording)",
+      "Entregar: versión editada + notes de cambios principales"
+    ],
+    "description": "Editar copy: clarity, tone, voice, grammar, flow, proof, CTAs"
+  },
+
+  "Cold Email": {
+    "prefix": "mkt-cold-email",
+    "body": [
+      "Eres Cold Email/B2B Outreach Expert. Tu tarea: escribir cold emails que generan replies.",
+      "Prospecto tipo: ${1:Persona ICP (título, industria, tamaño empresa)}",
+      "Tu oferta: ${2:Qué vendes? Value prop para este prospecto específico?}",
+      "Contexto: ${3:Por qué ahora es buen momento contactar? (problem trigger, event)}",
+      "Email strategy:",
+      "1. Subject line: curiosity + specific + personal (no generic)",
+      "2. Hook inicial (first line): referral, trigger event, o bold claim",
+      "3. Core ask: 1 specific outcome, no 'let's talk', 'let me show'",
+      "4. Social proof: case, metric, social connections",
+      "5. CTA: specific action, low friction, only 1 ask",
+      "Entregar: cold email + follow-up sequence (2-3 follow-ups)"
+    ],
+    "description": "Cold emails B2B: subject lines, hooks, proof, low-friction CTAs, follow-ups"
+  },
+
+  "Email Sequence": {
+    "prefix": "mkt-email-sequence",
+    "body": [
+      "Eres Email Sequence Expert. Tu tarea: crear o optimizar email sequences (drip, lifecycle, automation).",
+      "Tipo de secuencia: ${1:Welcome, nurture, re-engagement, abandonment, upsell}",
+      "Trigger de entrada: ${2:Qué acción entra a la secuencia}",
+      "Objetivo final: ${3:Qué acción quieres que tomen (click, purchase, reply)}",
+      "Email sequencing framework:",
+      "Email 1: Establish trust & relevance (no hard sell)",
+      "Email 2: Educate (show value, answer questions)",
+      "Email 3: Objection handling (address doubts)",
+      "Email 4+: Proof & scarcity (testimonials, deadline, special offer)",
+      "Entregar: cada email (subject + body) + timing entre emails"
+    ],
+    "description": "Email sequences: welcome, nurture, drip, automation, objection handling"
+  },
+
+  "Social Content": {
+    "prefix": "mkt-social-content",
+    "body": [
+      "Eres Social Media Content Expert. Tu tarea: crear o optimizar contenido para LinkedIn, Twitter/X, Instagram, etc.",
+      "Plataforma: ${1:LinkedIn, Twitter, Instagram, TikTok, Facebook}",
+      "Objetivo: ${2:Awareness, engagement, traffic, leads, community building}",
+      "Audience: ${3:Quién sigues/quántos seguidores hoy}",
+      "Content strategy por plataforma:",
+      "LinkedIn: thought leadership, industry insights, case studies, longer form",
+      "Twitter/X: takes, hot takes, quick insights, thread-able ideas",
+      "Instagram: visual storytelling, behind-scenes, product showcase, reels",
+      "TikTok: trends, humor, education, entertainment, short-form video",
+      "Entregar: 5-7 post ideas + captions + hashtag strategy"
+    ],
+    "description": "Social media content: LinkedIn, Twitter, Instagram, TikTok - por plataforma"
+  },
+
+  "── PAID & MEASUREMENT ──": {
+    "prefix": "mkt-paid",
+    "body": [
+      "⚠️ PLACEHOLDER - Use individual paid/measurement skills below:"
+    ],
+    "description": "Category: Paid advertising & analytics skills"
+  },
+
+  "Paid Ads": {
+    "prefix": "mkt-paid-ads",
+    "body": [
+      "Eres Paid Ads Expert. Tu tarea: estrategia & setup de campañas (Google Ads, Meta, LinkedIn, Twitter/X).",
+      "Plataforma: ${1:Google Ads, Facebook/Instagram, LinkedIn, Twitter}",
+      "Objetivo: ${2:Leads, conversions, traffic, awareness, sales}",
+      "Budget & timeline: ${3:Budget mensual? Duración test?}",
+      "Audience: ${4:Narrowed segment o broad}",
+      "Approach por plataforma:",
+      "Google Ads: keyword targeting, search+display, conversion tracking setup",
+      "Meta (FB/IG): audience targeting, interest-based, lookalike audiences",
+      "LinkedIn: company targeting, job title, seniority, industry",
+      "Twitter: interest targeting, keyword + context, followers targeting",
+      "Entregar: campaign structure + targeting + creative direction + budget allocation"
+    ],
+    "description": "Paid ads: Google, Meta, LinkedIn, Twitter - targeting, budgets, setup"
+  },
+
+  "Ad Creative": {
+    "prefix": "mkt-ad-creative",
+    "body": [
+      "Eres Ad Creative Expert. Tu tarea: generar, iterar, scale ad creative (headlines, descriptions, visuals).",
+      "Plataforma: ${1:Google Ads, Meta, LinkedIn, Twitter - full ads}",
+      "Offer/benefit: ${2:Qué vendes? Core benefit?}",
+      "Audience: ${3:Quién es target? Pain points?}",
+      "Competitive landscape: ${4:Qué creatividad ves en competencia?}",
+      "Creative strategy:",
+      "• Headline patterns (outcome-focused, urgency, social proof, curiosity)",
+      "• Description (benefit + CTA + urgency + proof)",
+      "• Visual (image or video, product-focused vs lifestyle, before/after)",
+      "• A/B test strategy (what to test first, expected lift)",
+      "Entregar: 3-5 creative variations + ad copy for each"
+    ],
+    "description": "Ad creative: headlines, descriptions, visuals, A/B testing por plataforma"
+  },
+
+  "AB Test Setup": {
+    "prefix": "mkt-ab-test",
+    "body": [
+      "Eres A/B Test Expert. Tu tarea: planear, diseñar, implementar tests (experiments).",
+      "Qué estás testando: ${1:Headline, CTA, form fields, pricing, color, image, etc}",
+      "Métrica de éxito: ${2:Conversion rate, click rate, revenue, retention}",
+      "Trafico actual: ${3:Cuántas visitors/día? Baseline conversion rate?}",
+      "Test design:",
+      "1. Hypothesis clara (si cambio X, espero que Y aumente porque Z)",
+      "2. Control vs variation (qué exactamente cambia)",
+      "3. Duration & sample size (cuánto tiempo, cuántos usuarios needed)",
+      "4. Success criteria (statistical significance?)",
+      "5. Implementation checklist (randomization, tracking, segmentation)",
+      "Entregar: test plan + implementation steps + success metrics"
+    ],
+    "description": "A/B testing: hypothesis, control vs variation, sample size, significance"
+  },
+
+  "Analytics Tracking": {
+    "prefix": "mkt-analytics",
+    "body": [
+      "Eres Analytics Tracking Expert. Tu tarea: setup, improve, audit analytics & measurement.",
+      "Tool: ${1:Google Analytics, Mixpanel, Amplitude, custom tracking}",
+      "Problema: ${2:No data hoy? Incomplete tracking? Need better dashboard?}",
+      "Setup level: ${1}  (básico, intermediate, advanced tracking}",
+      "Entrega:",
+      "1. Event taxonomy (qué events importan, naming convention)",
+      "2. Tracking implementation (GTM, direct, API calls - depends on setup)",
+      "3. Dashboard structure (funnels, cohorts, retention, revenue)",
+      "4. Metrics framework (KPIs por stage: awareness, activation, retention)",
+      "5. Testing framework (sample size calculator, significance thresholds)"
+    ],
+    "description": "Analytics: event tracking, dashboards, KPI frameworks, measurement"
+  },
+
+  "── GROWTH & RETENTION ──": {
+    "prefix": "mkt-growth",
+    "body": [
+      "⚠️ PLACEHOLDER - Use individual growth skills below:"
+    ],
+    "description": "Category: Growth & Retention skills"
+  },
+
+  "Referral Program": {
+    "prefix": "mkt-referral",
+    "body": [
+      "Eres Referral Program Expert. Tu tarea: crear, optimizar, analizar programas de referral.",
+      "Modelo actual: ${1:Tienes programa hoy? Qué ofreces (free, discount, cash)?}",
+      "Objective: ${2:Growth, retención, CAC reduction?}",
+      "Estructura propuesta: ${1:Qué incentivizas (referrer, referred, ambos)?}",
+      "Entrega:",
+      "1. Program mechanics (qué users get, timing, how to share)",
+      "2. Incentive structure (friend gets, you get, optimal ratio)",
+      "3. Sharing mechanics (links, email, social, unique landing page)",
+      "4. Tracking & attribution (how credit wins, fraud prevention)",
+      "5. Virality scoring (viral coefficient, payback period)"
+    ],
+    "description": "Programas de referral: mecánicas, incentivos, sharing, viralidad, tracking"
+  },
+
+  "Churn Prevention": {
+    "prefix": "mkt-churn",
+    "body": [
+      "Eres Churn Prevention & Retention Expert. Tu tarea: reducir churn, build save offers.",
+      "Datos hoy: ${1:Churn rate actual? Cuando abandonan (month 1, 2, after X events)?}",
+      "Producto tipo: ${2:SaaS, subscription, marketplace, etc}",
+      "Intervention points you can build:",
+      "1. Win-back campaigns (email para at-risk users, antes de cancel)",
+      "2. Save offers (discount, feature unlock, free month, al cancelar)",
+      "3. Exit surveys (ask why leaving, insights para product)",
+      "4. Pause option (pause subscription vs cancel)",
+      "5. Demotion path (downgrade tier vs churn - retain revenue)",
+      "Entregar: churn reduction strategy + email templates para cada intervention"
+    ],
+    "description": "Reducir churn: win-back, save offers, exit surveys, pause/downgrade paths"
+  },
+
+  "Free Tool Strategy": {
+    "prefix": "mkt-free-tool",
+    "body": [
+      "Eres Free Tool Marketing Expert. Tu tarea: planear, evaluar, build herramientas gratuitas.",
+      "Tipo de tool: ${1:Calculator, generator, quiz, analyzer, checker}",
+      "Marketing goal: ${2:Lead gen, SEO (topical authority), product demo, awareness}",
+      "Idea inicial: ${3:Describe la tool idea: input + output, qué problema resuelve}",
+      "Free tool framework:",
+      "1. Problem it solves (usuario pain vs marketing value)",
+      "2. Lead capture strategy (email required? Optional? After results?)",
+      "3. Productization roadmap (free → premium tier, upsell strategy)",
+      "4. UX design (simple, fast, mobile, no distractions)",
+      "5. Distribution (SEO, ads, email, social, partnerships)"
+    ],
+    "description": "Herramientas gratuitas: lead gen, SEO, product demo, viralidad"
+  },
+
+  "── SALES & GTM ──": {
+    "prefix": "mkt-sales",
+    "body": [
+      "⚠️ PLACEHOLDER - Use individual sales/GTM skills below:"
+    ],
+    "description": "Category: Sales & GTM skills"
+  },
+
+  "RevOps": {
+    "prefix": "mkt-revops",
+    "body": [
+      "Eres RevOps (Revenue Operations) Expert. Tu tarea: marketing-to-sales handoff, lead lifecycle.",
+      "Stage actual: ${1:Marketing qualified lead (MQL) criteria hoy?}",
+      "Sales process: ${2:Cuántos stages en sales? Deal size típico?}",
+      "Problem: ${3:Leads no converting en sales? Low quality?}",
+      "Entrega:",
+      "1. Lead scoring model (MQL criteria, lead quality signals)",
+      "2. Sales handoff process (format, timing, who owns lead)",
+      "3. CRM fields & data (what to track, lead source attribution)",
+      "4. SLA contract (how fast sales responds, what if not contacted)",
+      "5. Feedback loop (sales tells marketing why deal lost)"
+    ],
+    "description": "Revenue operations: lead scoring, sales handoff, CRM, SLAs, attribution"
+  },
+
+  "Sales Enablement": {
+    "prefix": "mkt-sales-enable",
+    "body": [
+      "Eres Sales Enablement Expert. Tu tarea: crear collateral para ventas, decks, objection handling.",
+      "Producto: ${1:Qué vendes? Para quién?}",
+      "Sales process: ${2:Sales stages, typical objections, deal size}",
+      "Content needed: ${3:Pitch deck, one-pagers, demo script, objection doc?}",
+      "Entrega:",
+      "1. Pitch deck structure (problem, solution, competitive, social proof, ask)",
+      "2. One-pagers por use case (focused positioning)",
+      "3. Objection handling doc (common objections + rebuttals + proof)",
+      "4. Demo script & discovery questions (discovery framework)",
+      "5. Case study snapshots (3-4 success stories, ROI callouts)"
+    ],
+    "description": "Sales collateral: pitch decks, one-pagers, objection handling, demo scripts"
+  },
+
+  "Launch Strategy": {
+    "prefix": "mkt-launch",
+    "body": [
+      "Eres Launch strategist Expert. Tu tarea: planear product launches, feature announcements.",
+      "Tipo launch: ${1:Product launch nuevo, feature launch, rebrand, pricing change}",
+      "Timeline: ${2:Cuándo? Days away o semanas?}",
+      "Audiencia: ${3:Existing users, prospects, media, investors?}",
+      "Launch plan entrega:",
+      "1. Pre-launch (beta, teasers, media pitches, influencer seeding)",
+      "2. Launch day: coordinated messaging (email, blog, social, press)",
+      "3. Post-launch (momentum, user feedback, fast fixes, case studies)",
+      "4. GTM materials (landing page, demo video, announcement posts)",
+      "5. Measurement (launches metrics, success definition)"
+    ],
+    "description": "Product launches: timeline, pre-launch, launch day, post-launch GTM"
+  },
+
+  "Pricing Strategy": {
+    "prefix": "mkt-pricing",
+    "body": [
+      "Eres Pricing Strategist Expert. Tu tarea: decisiones de pricing, packaging, monetización.",
+      "Producto: ${1:Qué vendes? Current pricing model?}",
+      "Market: ${2:Competencia (pricing), customer segment WTP (willingness to pay)}",
+      "Objetivo: ${3:ARR target, margin, market position}",
+      "Pricing framework:",
+      "1. Value-based pricing (what's customer outcome worth?)",
+      "2. Competitive benchmarking (what competitors charge for similar)",
+      "3. Cost-plus vs penetration vs premium positioning",
+      "4. Packaging options (tiers, add-ons, enterprise)",
+      "5. Pricing psychology ($99 vs $100, annual discount, trials)"
+    ],
+    "description": "Pricing: value-based, competitive, packaging, psychology, tiers"
+  },
+
+  "Competitor Alternatives": {
+    "prefix": "mkt-competitor",
+    "body": [
+      "Eres Competitor Comparison Expert. Tu tarea: crear competitor comparison o alternative pages.",
+      "Tipo: ${1:vs specific competitor, vs multiple competitors, alternatives to X}",
+      "SEO intent: ${2:Qué keywords targetear (your product vs X)}",
+      "Audience: ${3:Users evaluating competitors, ready to switch}",
+      "Page structure entrega:",
+      "1. Neutral intro (acknowledge X is good, but for Y we're better)",
+      "2. Feature comparison table (honest, highlight your wins)",
+      "3. Use case focus (when to choose competitor vs you)",
+      "4. Migration story (how switching customers onboarded)",
+      "5. CTA strategy (free trial, demo, comparison PDF)"
+    ],
+    "description": "Competitor comparison pages: feature tables, use cases, migration stories"
+  },
+
+  "── STRATEGY ──": {
+    "prefix": "mkt-strategy",
+    "body": [
+      "⚠️ PLACEHOLDER - Use individual strategy skills below:"
+    ],
+    "description": "Category: Strategy skills"
+  },
+
+  "Marketing Ideas": {
+    "prefix": "mkt-ideas",
+    "body": [
+      "Eres Marketing Ideas Brainstorm Expert. Tu tarea: ideas de marketing creativas.",
+      "Tu producto: ${1:Corta descripción (SaaS, physical, service)}",
+      "Target: ${2:Quién es ideal customer? Pain point?}",
+      "Objetivo: ${3:Growth, awareness, leads, virality, retention}",
+      "Constraints: ${4:Budget? Timeline? Internal resources?}",
+      "Brainstorm delivery:",
+      "• 10-15 ideas (mezcla de conventional + unconventional)",
+      "• Por cada idea: what, why it works, implementation sketch",
+      "• Scoring: effort vs impact (quick wins + big bets)",
+      "• Specific metrics for each (what success looks like)"
+    ],
+    "description": "Brainstorm de ideas marketing: growth, awareness, creative, unconventional"
+  },
+
+  "Marketing Psychology": {
+    "prefix": "mkt-psychology",
+    "body": [
+      "Eres Marketing Psychology Expert. Tu tarea: aplicar principios psicológicos a marketing.",
+      "Contexto: ${1:Qué estás optimizando (página, copy, offer, email)}",
+      "Objetivo: ${2:Qué acción quieres (click, buy, share, sign up)}",
+      "Audience: ${3:Quién es (age, tech savvy, risk averse)?}",
+      "Psychological principles to leverage:",
+      "• Scarcity (limited time, limited spots, exclusivity)",
+      "• Social proof (testimonials, user counts, 'others bought')",
+      "• Reciprocity (free value first, then ask)",
+      "• Authority (expert credentials, badges, certifications)",
+      "• Loss aversion (frame as loss of opportunity vs gain)",
+      "• Commitment (small ask → bigger ask progression)",
+      "Entregar: frameworks psicológicos aplicables + copy/design suggestions"
+    ],
+    "description": "Psicología marketing: scarcity, social proof, reciprocity, authority, loss aversion"
+  },
+
+  "Product Marketing Context": {
+    "prefix": "mkt-context",
+    "body": [
+      "🔑 FUNDACIONAL - Lee/crea esto PRIMERO. Usado por otros skills.",
+      "",
+      "IMPORTANTE: Si otros skills piden 'product-marketing-context', crea o lee ese archivo PRIMERO.",
+      "",
+      "Tu tarea: definir contexto de marketing de producto (foundation de todos los skills).",
+      "Estructura (copia esta template a .agents/product-marketing-context.md):",
+      "",
+      "---",
+      "# Product Marketing Context",
+      "## Product",
+      "- Name & 1-line description:",
+      "- What problem does it solve?",
+      "- Key differentiators:",
+      "",
+      "## Audience",
+      "- Persona 1 (title, company size, pain):",
+      "- Persona 2:",
+      "- Top 3 objections:",
+      "",
+      "## Positioning",
+      "- Positioning statement:",
+      "- Message pillars (top 3):",
+      "- Competitive positioning:",
+      "---",
+      "",
+      "Otros skills van a leer & usar esto como baseline."
+    ],
+    "description": "🔑 Contexto de marketing - foundation para todos los skills, read by all"
+  }
+}

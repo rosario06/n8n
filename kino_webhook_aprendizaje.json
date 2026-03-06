@@ -1,0 +1,404 @@
+{
+  "name": "Kino-Brain Webhook Aprendizaje (Fase 2)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kino-aprendizaje",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1200, 240],
+      "id": "wb-001",
+      "name": "Webhook Aprendizaje"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nconst fecha      = body.fecha      || '';\nconst numeros    = body.numeros    || '';\nconst suma_total = body.suma_total || 0;\n\nif (!fecha || !numeros) {\n  return [{ json: { valid: false, error: 'Faltan campos fecha o numeros' } }];\n}\nconst nums = numeros.split(',');\nif (nums.length !== 20) {\n  return [{ json: { valid: false, error: `Se esperan 20 numeros, llegaron ${nums.length}` } }];\n}\nreturn [{ json: { valid: true, fecha, numeros, suma_total: parseInt(suma_total) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-960, 240],
+      "id": "wb-002",
+      "name": "Validar Payload"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-valid",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-720, 240],
+      "id": "wb-003",
+      "name": "Es valido?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO sorteos (fecha, numeros, suma_total)\nVALUES ('{{ $json.fecha }}', '{{ $json.numeros }}', {{ $json.suma_total }})\nON CONFLICT (fecha) DO NOTHING;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-480, 160],
+      "id": "wb-004",
+      "name": "Insert Sorteo",
+      "credentials": {
+        "postgres": {
+          "id": "VdcTWLHwKkYlGTIj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    (SELECT json_agg(t ORDER BY t.fecha DESC)\n     FROM (\n         SELECT fecha, aciertos, mejor_combo, mejor_aciertos,\n                leccion_tecnica, estrategia_nombre,\n                combinacion_1, combinacion_2, combinacion_3,\n                premio_c1, premio_c2, premio_c3\n         FROM aprendizaje_ia ORDER BY id DESC LIMIT 30\n     ) t\n    ) AS historial_completo,\n    (SELECT combinacion_1 FROM aprendizaje_ia ORDER BY id DESC LIMIT 1) AS combinacion_1_anterior,\n    (SELECT combinacion_2 FROM aprendizaje_ia ORDER BY id DESC LIMIT 1) AS combinacion_2_anterior,\n    (SELECT combinacion_3 FROM aprendizaje_ia ORDER BY id DESC LIMIT 1) AS combinacion_3_anterior,\n    (SELECT json_agg(e ORDER BY e.aciertos_promedio DESC)\n     FROM (\n         SELECT nombre, descripcion, reglas, votos_totales, votos_ganados,\n                aciertos_promedio, veces_usada,\n                CASE WHEN votos_totales > 0\n                     THEN ROUND((votos_ganados::numeric/votos_totales)*100,1)\n                     ELSE 0 END AS win_rate_pct\n         FROM estrategias WHERE activa = TRUE\n         ORDER BY aciertos_promedio DESC\n     ) e\n    ) AS estrategias_disponibles,\n    (SELECT json_agg(v ORDER BY v.fecha DESC)\n     FROM (\n         SELECT fecha, estrategia_ganadora, votos_favor,\n                votos_total, razon_eleccion, aciertos_obtenidos\n         FROM votaciones ORDER BY id DESC LIMIT 20\n     ) v\n    ) AS historial_votaciones,\n    (SELECT json_build_object(\n        'suma_promedio',     ROUND(AVG(suma_total),1),\n        'suma_max',          MAX(suma_total),\n        'suma_min',          MIN(suma_total),\n        'numeros_top10', (\n            SELECT json_agg(r ORDER BY r.frecuencia DESC)\n            FROM (\n                SELECT num::int AS numero, COUNT(*) AS frecuencia\n                FROM (SELECT unnest(string_to_array(numeros,',')) AS num\n                      FROM sorteos ORDER BY id DESC LIMIT 30) x\n                GROUP BY num ORDER BY frecuencia DESC LIMIT 10\n            ) r\n        ),\n        'numeros_rezagados', (\n            SELECT json_agg(r ORDER BY r.frecuencia ASC)\n            FROM (\n                SELECT num::int AS numero, COUNT(*) AS frecuencia\n                FROM (SELECT unnest(string_to_array(numeros,',')) AS num\n                      FROM sorteos ORDER BY id DESC LIMIT 30) x\n                GROUP BY num ORDER BY frecuencia ASC LIMIT 10\n            ) r\n        ),\n        'ultimos_5', (\n            SELECT json_agg(s ORDER BY s.fecha DESC)\n            FROM (SELECT fecha, numeros, suma_total\n                  FROM sorteos ORDER BY id DESC LIMIT 5) s\n        )\n    )\n    FROM (SELECT * FROM sorteos ORDER BY id DESC LIMIT 30) r\n    ) AS estadisticas\nFROM (SELECT 1) dummy;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-240, 160],
+      "id": "wb-005",
+      "name": "PostgreSQL Contexto",
+      "credentials": {
+        "postgres": {
+          "id": "VdcTWLHwKkYlGTIj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Eres Kino-Brain, sistema de meta-aprendizaje para el Super Kino TV de LEIDSA (República Dominicana).\n\nREGLAS DEL JUEGO:\n- Se sortean 20 bolas de 80 posibles cada noche\n- El jugador selecciona 10 números (cuesta RD$25)\n- Premios: 5 aciertos=RD$60, 6=RD$300, 7=RD$1000, 8=RD$10000, 9=RD$150000, 10=RD$25000000, 0=RD$80\n- Objetivo: maximizar probabilidad de pegar 8+\n\n════════════════════════════════════\nDATOS DEL SORTEO\n════════════════════════════════════\nFecha: {{ $('Validar Payload').item.json.fecha }}\n20 números sorteados: {{ $('Validar Payload').item.json.numeros }}\nSuma total: {{ $('Validar Payload').item.json.suma_total }}\n\n════════════════════════════════════\nCOMBINACIONES JUGADAS AYER\n════════════════════════════════════\nC1: {{ $json.combinacion_1_anterior ?? 'Sin datos' }}\nC2: {{ $json.combinacion_2_anterior ?? 'Sin datos' }}\nC3: {{ $json.combinacion_3_anterior ?? 'Sin datos' }}\n\n════════════════════════════════════\nESTRATEGIAS DISPONIBLES\n════════════════════════════════════\n{{ $json.estrategias_disponibles ?? 'Sin estrategias' }}\n\n════════════════════════════════════\nHISTORIAL DE APRENDIZAJE (últimos 30)\n════════════════════════════════════\n{{ $json.historial_completo ?? 'Sin historial' }}\n\n════════════════════════════════════\nHISTORIAL DE VOTACIONES\n════════════════════════════════════\n{{ $json.historial_votaciones ?? 'Sin votaciones' }}\n\n════════════════════════════════════\nESTADÍSTICAS ÚLTIMOS 30 SORTEOS\n════════════════════════════════════\n{{ $json.estadisticas ?? 'Sin estadisticas' }}\n\n════════════════════════════════════\nTU PROCESO OBLIGATORIO\n════════════════════════════════════\n\nFASE 1 - EVALUACIÓN:\nConta exactamente cuántos números de cada combinación anterior aparecen en los 20 sorteados hoy.\nCalcula el premio obtenido según la tabla de premios.\n\nFASE 2 - VOTACIÓN:\nAsigna un voto 0-10 a cada estrategia según el contexto de hoy.\nLa ganadora guía la predicción.\n\nFASE 3 - GENERACIÓN DE CANDIDATOS:\nUsando la estrategia ganadora, selecciona 20 números candidatos.\n\nFASE 4 - 3 COMBINACIONES DISTINTAS:\nDel pool de 20 candidatos genera 3 combinaciones de 10 números COMPLETAMENTE DISTINTAS:\n- C1 (Conservadora): posiciones 1-10 del pool\n- C2 (Balanceada): posiciones 6-15 del pool\n- C3 (Agresiva): posiciones 11-20 del pool\nIMPORTANTE: Las 3 combinaciones deben ser distintas entre sí.\n\nFASE 5 - NUEVA ESTRATEGIA (opcional):\nSi ninguna estrategia supera 6 votos Y detectas patrón nuevo, propón una nueva.\n\nRESPONDE ÚNICAMENTE con este JSON:\n{\n  \"aciertos_c1\": 0,\n  \"aciertos_c2\": 0,\n  \"aciertos_c3\": 0,\n  \"leccion\": \"análisis de hoy\",\n  \"candidatos_20\": \"01,02,03,04,05,06,07,08,09,10,11,12,13,14,15,16,17,18,19,20\",\n  \"combinacion_1\": \"01,02,03,04,05,06,07,08,09,10\",\n  \"combinacion_2\": \"06,07,08,09,10,11,12,13,14,15\",\n  \"combinacion_3\": \"11,12,13,14,15,16,17,18,19,20\",\n  \"estrategia_ganadora\": \"Alta Frecuencia\",\n  \"votos_alta_frecuencia\": 7,\n  \"votos_sesgo_decadal\": 5,\n  \"votos_control_suma\": 6,\n  \"votos_ciclo_semanal\": 4,\n  \"votos_anti_repeticion\": 3,\n  \"votos_favor\": 7,\n  \"votos_total\": 25,\n  \"razon_eleccion\": \"razón de elección\",\n  \"reglas_actualizadas\": \"Regla 1: ...\",\n  \"nueva_estrategia_crear\": false,\n  \"nueva_estrategia_nombre\": \"\",\n  \"nueva_estrategia_descripcion\": \"\",\n  \"nueva_estrategia_reglas\": \"\",\n  \"fecha\": \"2026-03-01\"\n}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [0, 160],
+      "id": "wb-006",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "responsesApiEnabled": false,
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [-80, 380],
+      "id": "wb-007",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "2qpwCFsAycjSgPGp",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"aciertos_c1\": 4,\n  \"aciertos_c2\": 6,\n  \"aciertos_c3\": 3,\n  \"leccion\": \"La decada 70-79 domino con 6 numeros. Suma alta de 847.\",\n  \"candidatos_20\": \"02,07,15,19,23,31,40,44,52,55,58,63,67,70,72,74,75,76,78,80\",\n  \"combinacion_1\": \"02,19,23,40,52,63,70,72,75,80\",\n  \"combinacion_2\": \"23,31,44,52,55,58,67,70,74,78\",\n  \"combinacion_3\": \"40,44,55,58,63,67,72,74,76,80\",\n  \"estrategia_ganadora\": \"Sesgo Decadal\",\n  \"votos_alta_frecuencia\": 6,\n  \"votos_sesgo_decadal\": 9,\n  \"votos_control_suma\": 7,\n  \"votos_ciclo_semanal\": 4,\n  \"votos_anti_repeticion\": 3,\n  \"votos_favor\": 9,\n  \"votos_total\": 29,\n  \"razon_eleccion\": \"La decada 70-79 lleva 5 sorteos con 5+ numeros.\",\n  \"reglas_actualizadas\": \"Regla 1: Incluir 6 numeros de la decada 70-79\",\n  \"nueva_estrategia_crear\": false,\n  \"nueva_estrategia_nombre\": \"\",\n  \"nueva_estrategia_descripcion\": \"\",\n  \"nueva_estrategia_reglas\": \"\",\n  \"fecha\": \"2026-03-01\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [120, 380],
+      "id": "wb-008",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $('AI Agent').first().json.output;\nconst payload = $('Validar Payload').first().json;\n\n// Verificar aciertos realmente en codigo\nconst sorteados = payload.numeros.split(',').map(n => n.trim().padStart(2, '0'));\n\nfunction calcularAciertos(combo) {\n    if (!combo) return 0;\n    const nums = combo.split(',').map(n => n.trim().padStart(2, '0'));\n    return nums.filter(n => sorteados.includes(n)).length;\n}\n\nfunction calcularPremio(ac) {\n    const p = {10:'RD$25,000,000',9:'RD$150,000',8:'RD$10,000',7:'RD$1,000',6:'RD$300',5:'RD$60',0:'RD$80 (consolacion)'};\n    return p[ac] || 'RD$0';\n}\n\n// Validar que las combinaciones sean distintas\nlet c1 = output.combinacion_1 || '';\nlet c2 = output.combinacion_2 || '';\nlet c3 = output.combinacion_3 || '';\n\nif (c1 === c2 || c1 === c3 || c2 === c3) {\n    const pool = (output.candidatos_20 || '').split(',').map(n => n.trim());\n    if (pool.length >= 20) {\n        c1 = pool.slice(0, 10).join(',');\n        c2 = pool.slice(5, 15).join(',');\n        c3 = pool.slice(10, 20).join(',');\n    }\n}\n\nconst ac1 = calcularAciertos(c1);\nconst ac2 = calcularAciertos(c2);\nconst ac3 = calcularAciertos(c3);\nconst mejor = Math.max(ac1, ac2, ac3);\n\nreturn [{\n    json: {\n        // Resultados verificados\n        aciertos_c1:         ac1,\n        aciertos_c2:         ac2,\n        aciertos_c3:         ac3,\n        premio_c1:           calcularPremio(ac1),\n        premio_c2:           calcularPremio(ac2),\n        premio_c3:           calcularPremio(ac3),\n        mejor_combo:         mejor === ac1 ? 'Combinacion 1' : mejor === ac2 ? 'Combinacion 2' : 'Combinacion 3',\n        mejor_aciertos:      mejor,\n        mejor_premio:        calcularPremio(mejor),\n        // Prediccion de manana\n        combinacion_1:       c1,\n        combinacion_2:       c2,\n        combinacion_3:       c3,\n        candidatos_20:       output.candidatos_20,\n        // Votacion\n        estrategia_ganadora: output.estrategia_ganadora,\n        votos_favor:         output.votos_favor,\n        votos_total:         output.votos_total,\n        razon_eleccion:      output.razon_eleccion,\n        reglas_actualizadas: output.reglas_actualizadas,\n        leccion_tecnica:     output.leccion,\n        // Nueva estrategia\n        nueva_estrategia_crear:  output.nueva_estrategia_crear || false,\n        nueva_estrategia_nombre: output.nueva_estrategia_nombre || null,\n        nueva_estrategia_desc:   output.nueva_estrategia_descripcion || null,\n        nueva_estrategia_reglas: output.nueva_estrategia_reglas || null,\n        // Para aprendizaje_ia\n        fecha:               payload.fecha,\n        aciertos:            mejor,\n        prediccion:          c1\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 160],
+      "id": "wb-009",
+      "name": "Procesar Votacion"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE estrategias\nSET\n    votos_totales    = votos_totales + 1,\n    votos_ganados    = CASE WHEN nombre = '{{ $json.estrategia_ganadora }}' THEN votos_ganados + 1 ELSE votos_ganados END,\n    aciertos_total   = CASE WHEN nombre = '{{ $json.estrategia_ganadora }}' THEN aciertos_total + {{ $json.aciertos }} ELSE aciertos_total END,\n    veces_usada      = CASE WHEN nombre = '{{ $json.estrategia_ganadora }}' THEN veces_usada + 1 ELSE veces_usada END,\n    aciertos_promedio = CASE WHEN nombre = '{{ $json.estrategia_ganadora }}' AND (veces_usada + 1) > 0 THEN ROUND((aciertos_total + {{ $json.aciertos }})::numeric / (veces_usada + 1), 2) ELSE aciertos_promedio END,\n    reglas           = CASE WHEN nombre = '{{ $json.estrategia_ganadora }}' THEN '{{ $json.reglas_actualizadas.replace(/\\'/, \"\\'\\'\") }}' ELSE reglas END,\n    ultima_vez_usada  = CASE WHEN nombre = '{{ $json.estrategia_ganadora }}' THEN CURRENT_DATE ELSE ultima_vez_usada END\nWHERE activa = TRUE;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [480, 160],
+      "id": "wb-010",
+      "name": "Actualizar Estrategia",
+      "credentials": {
+        "postgres": {
+          "id": "VdcTWLHwKkYlGTIj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO votaciones (fecha, estrategia_ganadora, votos_favor, votos_total, razon_eleccion)\nVALUES (\n    '{{ $json.fecha }}',\n    '{{ $json.estrategia_ganadora }}',\n    {{ $json.votos_favor }},\n    {{ $json.votos_total }},\n    '{{ $json.razon_eleccion }}'\n)\nON CONFLICT (fecha) DO UPDATE SET\n    estrategia_ganadora = EXCLUDED.estrategia_ganadora,\n    votos_favor         = EXCLUDED.votos_favor,\n    votos_total         = EXCLUDED.votos_total,\n    razon_eleccion      = EXCLUDED.razon_eleccion;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [720, 160],
+      "id": "wb-011",
+      "name": "Insertar Votacion",
+      "credentials": {
+        "postgres": {
+          "id": "VdcTWLHwKkYlGTIj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const crear = $json.nueva_estrategia_crear;\nreturn [{ json: { ...$json, accion: crear ? 'crear' : 'sin_cambio' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 160],
+      "id": "wb-012",
+      "name": "Crear Estrategia?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-crear",
+              "leftValue": "={{ $json.accion }}",
+              "rightValue": "crear",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1200, 160],
+      "id": "wb-013",
+      "name": "IF Nueva Estrategia"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO estrategias (nombre, descripcion, reglas)\nVALUES (\n    '{{ $json.nueva_estrategia_nombre }}',\n    '{{ $json.nueva_estrategia_desc }}',\n    '{{ $json.nueva_estrategia_reglas }}'\n)\nON CONFLICT (nombre) DO NOTHING;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1440, 80],
+      "id": "wb-014",
+      "name": "Nueva Estrategia",
+      "credentials": {
+        "postgres": {
+          "id": "VdcTWLHwKkYlGTIj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": "aprendizaje_ia",
+        "embeddingBatchSize": 512,
+        "options": {
+          "columnNames": {
+            "values": {
+              "vectorColumnName": "estrategia_vector",
+              "contentColumnName": "leccion_tecnica"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [1680, 160],
+      "id": "wb-015",
+      "name": "Postgres PGVector Store",
+      "credentials": {
+        "postgres": {
+          "id": "VdcTWLHwKkYlGTIj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.3,
+      "position": [1680, 380],
+      "id": "wb-016",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "2qpwCFsAycjSgPGp",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [1840, 380],
+      "id": "wb-017",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "schema": { "__rl": true, "mode": "list", "value": "public" },
+        "table": { "__rl": true, "value": "aprendizaje_ia", "mode": "list", "cachedResultName": "aprendizaje_ia" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fecha":           "={{ $json.fecha }}",
+            "prediccion":      "={{ $json.prediccion }}",
+            "aciertos":        "={{ $json.aciertos }}",
+            "leccion_tecnica": "={{ $json.leccion_tecnica }}",
+            "estrategia_nombre": "={{ $json.estrategia_ganadora }}",
+            "combinacion_1":   "={{ $json.combinacion_1 }}",
+            "combinacion_2":   "={{ $json.combinacion_2 }}",
+            "combinacion_3":   "={{ $json.combinacion_3 }}",
+            "aciertos_c1":     "={{ $json.aciertos_c1 }}",
+            "aciertos_c2":     "={{ $json.aciertos_c2 }}",
+            "aciertos_c3":     "={{ $json.aciertos_c3 }}",
+            "premio_c1":       "={{ $json.premio_c1 }}",
+            "premio_c2":       "={{ $json.premio_c2 }}",
+            "premio_c3":       "={{ $json.premio_c3 }}",
+            "mejor_combo":     "={{ $json.mejor_combo }}",
+            "mejor_aciertos":  "={{ $json.mejor_aciertos }}"
+          },
+          "matchingColumns": ["id"],
+          "schema": [
+            { "id": "id", "displayName": "id", "required": false, "defaultMatch": true, "display": true, "type": "number", "canBeUsedToMatch": true, "removed": true },
+            { "id": "fecha", "displayName": "fecha", "required": false, "defaultMatch": false, "display": true, "type": "dateTime", "canBeUsedToMatch": true },
+            { "id": "prediccion", "displayName": "prediccion", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "aciertos", "displayName": "aciertos", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": true },
+            { "id": "leccion_tecnica", "displayName": "leccion_tecnica", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "estrategia_nombre", "displayName": "estrategia_nombre", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "estrategia_vector", "displayName": "estrategia_vector", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": true },
+            { "id": "combinacion_1", "displayName": "combinacion_1", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "combinacion_2", "displayName": "combinacion_2", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "combinacion_3", "displayName": "combinacion_3", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "aciertos_c1", "displayName": "aciertos_c1", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": true },
+            { "id": "aciertos_c2", "displayName": "aciertos_c2", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": true },
+            { "id": "aciertos_c3", "displayName": "aciertos_c3", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": true },
+            { "id": "premio_c1", "displayName": "premio_c1", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "premio_c2", "displayName": "premio_c2", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "premio_c3", "displayName": "premio_c3", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "mejor_combo", "displayName": "mejor_combo", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "mejor_aciertos", "displayName": "mejor_aciertos", "required": false, "defaultMatch": false, "display": true, "type": "number", "canBeUsedToMatch": true }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1920, 160],
+      "id": "wb-018",
+      "name": "Insert aprendizaje_ia",
+      "credentials": {
+        "postgres": {
+          "id": "VdcTWLHwKkYlGTIj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', fecha: $('Validar Payload').item.json.fecha, mejor_aciertos: $json.mejor_aciertos, mejor_premio: $json.mejor_premio } }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [2160, 160],
+      "id": "wb-019",
+      "name": "Responder al Python"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'error', message: $json.error || 'Payload invalido' } }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [-480, 340],
+      "id": "wb-020",
+      "name": "Respuesta Error"
+    }
+  ],
+  "connections": {
+    "Webhook Aprendizaje": { "main": [[{ "node": "Validar Payload", "type": "main", "index": 0 }]] },
+    "Validar Payload":     { "main": [[{ "node": "Es valido?", "type": "main", "index": 0 }]] },
+    "Es valido?": {
+      "main": [
+        [{ "node": "Insert Sorteo", "type": "main", "index": 0 }],
+        [{ "node": "Respuesta Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insert Sorteo":       { "main": [[{ "node": "PostgreSQL Contexto", "type": "main", "index": 0 }]] },
+    "PostgreSQL Contexto": { "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]] },
+    "OpenAI Chat Model":   { "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]] },
+    "Structured Output Parser": { "ai_outputParser": [[{ "node": "AI Agent", "type": "ai_outputParser", "index": 0 }]] },
+    "AI Agent":            { "main": [[{ "node": "Procesar Votacion", "type": "main", "index": 0 }]] },
+    "Procesar Votacion":   { "main": [[{ "node": "Actualizar Estrategia", "type": "main", "index": 0 }]] },
+    "Actualizar Estrategia": { "main": [[{ "node": "Insertar Votacion", "type": "main", "index": 0 }]] },
+    "Insertar Votacion":   { "main": [[{ "node": "Crear Estrategia?", "type": "main", "index": 0 }]] },
+    "Crear Estrategia?":   { "main": [[{ "node": "IF Nueva Estrategia", "type": "main", "index": 0 }]] },
+    "IF Nueva Estrategia": {
+      "main": [
+        [{ "node": "Nueva Estrategia", "type": "main", "index": 0 }],
+        [{ "node": "Postgres PGVector Store", "type": "main", "index": 0 }]
+      ]
+    },
+    "Nueva Estrategia":    { "main": [[{ "node": "Postgres PGVector Store", "type": "main", "index": 0 }]] },
+    "Embeddings OpenAI":   { "ai_embedding": [[{ "node": "Postgres PGVector Store", "type": "ai_embedding", "index": 0 }]] },
+    "Default Data Loader": { "ai_document": [[{ "node": "Postgres PGVector Store", "type": "ai_document", "index": 0 }]] },
+    "Postgres PGVector Store": { "main": [[{ "node": "Insert aprendizaje_ia", "type": "main", "index": 0 }]] },
+    "Insert aprendizaje_ia": { "main": [[{ "node": "Responder al Python", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "instanceId": "931050f97149b39d686f06521074e89967a84ae13ec1ff2a78f488d3f9e2532b"
+  },
+  "tags": []
+}

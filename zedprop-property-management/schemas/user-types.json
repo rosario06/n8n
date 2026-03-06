@@ -1,0 +1,155 @@
+{
+  "userTypes": {
+    "owner": {
+      "id": "owner",
+      "name": "Property Owner",
+      "description": "Propietario de una o más propiedades",
+      "permissions": [
+        "create_property",
+        "view_properties",
+        "manage_tenants",
+        "view_payments",
+        "view_xero_reports",
+        "manage_staff",
+        "create_invoices",
+        "receive_notifications",
+        "view_audit_log",
+        "export_data",
+        "configure_automations"
+      ],
+      "menuOptions": {
+        "1": "Ver mis propiedades",
+        "2": "Gestionar inquilinos",
+        "3": "Ver pagos pendientes",
+        "4": "Reportes financieros",
+        "5": "Crear factura",
+        "6": "Configurar notificaciones",
+        "7": "Hablar con soporte",
+        "0": "Atrás"
+      },
+      "dataAccess": "Todas tus propiedades y sus inquilinos"
+    },
+    "tenant": {
+      "id": "tenant",
+      "name": "Tenant / Student",
+      "description": "Inquilino o estudiante en una propiedad",
+      "permissions": [
+        "download_contract",
+        "pay_rent",
+        "view_payment_history",
+        "view_invoice",
+        "report_issue",
+        "message_owner",
+        "use_ai_companion",
+        "receive_notifications",
+        "view_my_details"
+      ],
+      "menuOptions": {
+        "1": "Descargar mi contrato",
+        "2": "Pagar renta",
+        "3": "Ver mi factura actual",
+        "4": "Reportar un problema",
+        "5": "Chat Study Buddy (IA)",
+        "6": "Hablar con soporte",
+        "0": "Atrás"
+      },
+      "dataAccess": "Only your contract, payments, property details"
+    },
+    "staff": {
+      "id": "staff",
+      "name": "Property Staff",
+      "description": "Empleado de gestión de propiedades",
+      "permissions": [
+        "moderate_tenants",
+        "update_property_details",
+        "create_invoices",
+        "respond_to_issues",
+        "view_reports",
+        "manage_contracts",
+        "message_tenants"
+      ],
+      "menuOptions": {
+        "1": "Ver issues abiertos",
+        "2": "Responder inquilino",
+        "3": "Crear factura",
+        "4": "Ver inventario propiedades",
+        "5": "Ver reportes",
+        "0": "Atrás"
+      },
+      "dataAccess": "All properties and tenants (read-only mostly)"
+    },
+    "unknown": {
+      "id": "unknown",
+      "name": "Unknown User",
+      "description": "Número no registrado en el sistema",
+      "permissions": ["view_info", "submit_inquiry", "request_contact"],
+      "menuOptions": {
+        "1": "ℹ️ Información general",
+        "2": "📝 Solicitar alquiler",
+        "3": "💬 Contactar soporte",
+        "0": "Atrás"
+      },
+      "dataAccess": "Public info only"
+    }
+  },
+  "roles": {
+    "admin": {
+      "level": 10,
+      "canManage": ["owner", "tenant", "staff", "unknown"]
+    },
+    "owner": {
+      "level": 5,
+      "canManage": ["tenant", "staff"]
+    },
+    "staff": {
+      "level": 3,
+      "canManage": []
+    },
+    "tenant": {
+      "level": 1,
+      "canManage": []
+    },
+    "public": {
+      "level": 0,
+      "canManage": []
+    }
+  },
+  "permissions": {
+    "create_property": {
+      "requiredRole": "owner",
+      "description": "Crear una nueva propiedad"
+    },
+    "view_properties": {
+      "requiredRole": "owner",
+      "description": "Ver lista de propiedades propias"
+    },
+    "manage_tenants": {
+      "requiredRole": "owner",
+      "description": "Agregar/editar/eliminar inquilinos"
+    },
+    "download_contract": {
+      "requiredRole": "tenant",
+      "description": "Descargar contrato de alquiler"
+    },
+    "pay_rent": {
+      "requiredRole": "tenant",
+      "description": "Realizar pago de renta"
+    },
+    "create_invoice": {
+      "requiredRole": "owner",
+      "description": "Crear factura en Xero"
+    },
+    "view_xero_reports": {
+      "requiredRole": "owner",
+      "description": "Acceso a reportes financieros"
+    },
+    "use_ai_companion": {
+      "requiredRole": "tenant",
+      "description": "Usar Study Buddy (GPT-4o)"
+    },
+    "view_audit_log": {
+      "requiredRole": "owner",
+      "description": "Ver historial de actividades"
+    }
+  }
+}

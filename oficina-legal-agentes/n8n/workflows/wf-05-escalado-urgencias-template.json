@@ -1,0 +1,97 @@
+{
+  "name": "WF-05 Escalado de Urgencias (Template)",
+  "nodes": [
+    {
+      "name": "Webhook Urgencias",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "legal-urgencias",
+        "responseMode": "responseNode"
+      }
+    },
+    {
+      "name": "Evaluar Riesgo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const b = $json.body || $json;\nconst clean = (v) => (v ?? '').toString().trim();\nconst text = clean(b.text).toLowerCase();\nconst dueHours = Number(clean(b.deadline_in_hours || '99999'));\nconst caseId = Number(clean(b.case_id || '0'));\nconst conflictFlag = b.conflict_flag === true;\nconst criticalWords = ['hoy','mañana','audiencia','embargo','desalojo','medida urgente'];\nconst crisisWords = ['urgente','emergencia','auxilio','grave'];\nconst hits = [...criticalWords, ...crisisWords].filter(w => text.includes(w));\nconst escalate = conflictFlag || dueHours <= 72 || hits.length > 0;\nconst reason = conflictFlag ? 'conflicto_potencial' : (dueHours <= 72 ? 'plazo_critico' : (hits.length > 0 ? 'lenguaje_urgente' : 'sin_riesgo'));\nreturn [{json:{\n  case_id: Number.isFinite(caseId) && caseId > 0 ? caseId : null,\n  escalate,\n  reason,\n  due_hours: dueHours,\n  hits,\n  source_channel: clean(b.source_channel) || 'whatsapp',\n  original_text: clean(b.text)\n}}];"
+      }
+    },
+    {
+      "name": "Escalar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.escalate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Registrar Alerta",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO case_events (case_id, event_type, event_payload, created_by)\nVALUES (\n  {{ $json.case_id ? $json.case_id : 'NULL' }},\n  'urgent_escalation',\n  '{{ { reason: $json.reason, due_hours: $json.due_hours, hits: $json.hits, source_channel: $json.source_channel, text: $json.original_text }.toJsonString().replace(/\\'/g, \"''\") }}'::jsonb,\n  'wf_urgencias'\n)\nRETURNING id;"
+      }
+    },
+    {
+      "name": "Respuesta Escalado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'escalado', reason: $('Evaluar Riesgo').item.json.reason, message: 'Tu caso fue escalado a un abogado para revision inmediata.' } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "name": "Respuesta Sin Escalado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', escalado: false, message: 'Consulta registrada. Continuamos flujo normal.' } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Urgencias": {
+      "main": [[{ "node": "Evaluar Riesgo", "type": "main", "index": 0 }]]
+    },
+    "Evaluar Riesgo": {
+      "main": [[{ "node": "Escalar?", "type": "main", "index": 0 }]]
+    },
+    "Escalar?": {
+      "main": [
+        [{ "node": "Registrar Alerta", "type": "main", "index": 0 }],
+        [{ "node": "Respuesta Sin Escalado", "type": "main", "index": 0 }]
+      ]
+    },
+    "Registrar Alerta": {
+      "main": [[{ "node": "Respuesta Escalado", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
