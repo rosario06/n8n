@@ -4,13 +4,14 @@
 [![GitHub Repository](https://img.shields.io/badge/GitHub-rosario06%2Fn8n-blue?logo=github)](https://github.com/rosario06/n8n)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)]()
 [![Setup Time](https://img.shields.io/badge/Setup-25%20min-blue)]()
-[![Cost](https://img.shields.io/badge/Cost-$0%20Starter-green)]()
+[![Cost](https://img.shields.io/badge/Cost-%24%24%24%200-brightgreen)]()
 
-Una plataforma **enterprise-grade** de gestión de propiedades construida **directamente dentro de WhatsApp** usando n8n, Airtable, Google Sheets (o Xero) y GPT-4o.
+Una plataforma **enterprise-grade** de gestión de propiedades construida **directamente dentro de WhatsApp** usando n8n, Baserow, Invoice Ninja, y Groq/Llama 3.
 
-✨ **Sin aplicaciones que descargar, sin portales web complicados** — todo funciona en WhatsApp.  
-💰 **Gratis para empezar** ($0/mes con Google Sheets)  
-⚡ **Instalable en 25 minutos**
+✨ **100% GRATUITO** — sin límites de registros, sin cuotas, self-hosted  
+💰 **Costo: $0/mes** (todos los servicios son open-source o gratis)  
+⚡ **Instalable en 25 minutos**  
+🔐 **Datos tuyos** — nada en la nube sin tu control
 
 ## 🎯 Descripción General
 
@@ -22,56 +23,63 @@ ZedProp es una solución enterprise para gestionar:
 
 ### ⚡ Inicio Rápido
 
-| Recurso                                                   | Descripción                                                 |
-| --------------------------------------------------------- | ----------------------------------------------------------- |
-| [📋 REQUIREMENT_VALIDATION.md](REQUIREMENT_VALIDATION.md) | ✅ Validación 100% del requerimiento inicial                |
-| [📖 SETUP_GUIDE.md](docs/SETUP_GUIDE.md)                  | 5 fases de instalación (25 min total)                       |
-| [💰 ACCOUNTING_OPTIONS.md](ACCOUNTING_OPTIONS.md)         | Comparar: Google Sheets vs Wave vs Xero                     |
-| [🏗️ ARCHITECTURE.md](docs/ARCHITECTURE.md)                | Diagrama técnico completo                                   |
-| [🔌 Integraciones](integrations/)                         | Guías de setup para Airtable, WhatsApp, Google Sheets, Xero |
+| Recurso                                                                  | Descripción                                               |
+| ------------------------------------------------------------------------ | --------------------------------------------------------- |
+| [📋 REQUIREMENT_VALIDATION.md](REQUIREMENT_VALIDATION.md)                | ✅ Validación 100% del requerimiento inicial              |
+| [📖 SETUP_GUIDE.md](docs/SETUP_GUIDE.md)                                 | 5 fases de instalación (25 min total con Docker Compose)  |
+| [🏗️ ARCHITECTURE.md](docs/ARCHITECTURE.md)                               | Diagrama técnico del stack (Baserow, Invoice Ninja, Groq) |
+| [🔌 Integraciones](integrations/)                                        | Guías de setup para n8n, Baserow, Invoice Ninja, Groq     |
+| [📊 REQUIREMENT_VALIDATION.md → Casos de Uso](REQUIREMENT_VALIDATION.md) | 6 flujos reales con stack gratuito                        |
 
 ### Características Principales
 
 ✅ **Enrutamiento Inteligente**: Detecta automáticamente si quien escribe es propietario, inquilino o desconocido  
-✅ **Generación de PDFs Dinámicos**: Contratos y facturas en ~3 segundos  
-✅ **Sincronización Contable**: Pagos de alquiler → Google Sheets o Xero automáticamente  
-✅ **IA Integrada**: Compañero de estudio y asistente virtual con GPT-4o  
-✅ **Gestión de Propiedades**: Datos centralizados en Airtable/Google Sheets  
-✅ **Notificaciones Automáticas**: Recordatorios de pago, actualizaciones de propiedades, etc.  
-✅ **Costo MÍNIMO**: $0 inicial (todos los servicios tienen plan gratuito)
+✅ **Generación de PDFs Dinámicos**: Contratos y facturas en ~3 segundos (nodo HTML​2PDF)  
+✅ **Sincronización Contable**: Pagos → Invoice Ninja automáticamente  
+✅ **IA Integrada**: Tutoría online con Groq Llama 3 (completamente gratuita)  
+✅ **Gestión de Propiedades**: Datos centralizados en Baserow (self-hosted)  
+✅ **Notificaciones Multi-Canal**: WhatsApp, Telegram, Discord, Email  
+✅ **Costo REAL $0**: Sin tarjetas de crédito, sin suscripciones, sin límites
 
 > **¿Cumple el requerimiento?** → Ver [REQUIREMENT_VALIDATION.md](REQUIREMENT_VALIDATION.md) (validación completa con checklist de 10+ funcionalidades)
 
 ---
 
-## 🏗️ Arquitectura
+## 🏗️ Arquitectura del Sistema
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    WhatsApp Web Hook                     │
-│              (Twilio / WhatsApp Business API)            │
-└───────────────────┬─────────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────────────────────┐
-│              n8n Workflow Engine (100+ nodos)            │
-│  ┌─────────────────────────────────────────────────────┐│
-│  │ Mayor flujo de trabajo principal:                   ││
-│  │ - Webhook receptor / entrada                        ││
-│  │ - Enrutamiento (propietario/inquilino/otro)         ││
-│  │ - Menús dinámicos / procesamiento                   ││
-│  │ - Integraciones y sincronización                    ││
-│  └─────────────────────────────────────────────────────┘│
-└───┬──────────┬──────────┬──────────┬───────────────────┘
-    │          │          │          │
-    ▼          ▼          ▼          ▼
-┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
-│Airtable│ │  Xero  │ │  GPT-4o│ │ Google │
-│ (Base) │ │(Cuenta)│ │(Prompt)│ │ Sheets │
-└────────┘ └────────┘ └────────┘ └────────┘
+┌──────────────────────────────────────────────────────────┐
+│            Canales de Entrada (Gratuitos)                │
+│  WhatsApp (Twilio/Meta) | Telegram | Discord | Email     │
+└──────────────────┬───────────────────────────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────────────────────────┐
+│         n8n Workflow Engine (100+ Nodos)                 │
+│  • Recepción de webhooks                                 │
+│  • Enrutamiento inteligente (Owner/Tenant/Public)        │
+│  • Validación y procesamiento                            │
+│  • Orquestación de integraciones                         │
+└──────────────┬──────────────┬──────────────┬─────────────┘
+               │              │              │
+               ▼              ▼              ▼
+        ┌──────────┐    ┌──────────┐    ┌──────────┐
+        │ Baserow  │    │ Invoice  │    │ Groq /   │
+        │ (Datos)  │    │ Ninja    │    │ Llama 3  │
+        │ Self-    │    │ (Factura)│    │ (IA)     │
+        │ hosted   │    │ Gratis   │    │ Gratis   │
+        └──────────┘    └──────────┘    └──────────┘
+               │              │              │
+               └──────────────┬──────────────┘
+                              │
+                   ┌──────────▼──────────┐
+                   │ Canales de Salida   │
+                   │ WhatsApp/Telegram   │
+                   │ Discord/Email/SMS   │
+                   └─────────────────────┘
 ```
 
-### Flujos de Trabajo Principales
+### Stack Tecnológico (100% Gratuito)
 
 1. **Webhook Entrada** → Recibe mensaje WhatsApp
 2. **Identificación de Usuario** → ¿Quién envía el mensaje?
@@ -127,43 +135,38 @@ zedprop-property-management/
 
 ---
 
-## 🚀 Instalación Rápida
+## 🚀 Instalación Rápida - 100% Gratuito
 
-### ⭐ Opción MVP (Recomendada) - Totalmente Gratis
+### Stack Completo (Costo: $0/mes)
 
-Todos los servicios con plan **gratuito**:
+- **n8n** (Self-hosted, Docker) - Gratuito & Open Source
+- **Baserow** (Self-hosted, Docker) - Gratuito & Open Source (alternativa Airtable)
+- **Invoice Ninja** (Self-hosted, Docker) - Gratuito & Open Source (facturación/contabilidad)
+- **Groq / Hugging Face** (Llama 3) - API Gratuita (IA)
+- **WhatsApp/Telegram** - Canales de entrada gratuitos
 
-- **n8n** (self-hosted o n8n.cloud - Free tier)
-- **Airtable** (Free: 5 bases, 1200 registros)
-- **Google Sheets** ⭐ (Contabilidad gratis - Setup 5 min)
-- **OpenAI API** (Pay-as-you-go desde $0.15)
-- **WhatsApp Business API** (Twilio - $0.005/msg)
+### Opción Simple (En Servidor Local)
 
-**Total costo mes 1**: ~$5-10  
-**Setup completo**: ~25 minutos  
-[Ver ACCOUNTING_OPTIONS.md](ACCOUNTING_OPTIONS.md) para otras opciones
+```bash
+# 1. Docker Compose con 3 contenedores: n8n + Baserow + Invoice Ninja
+docker-compose up -d
 
-### ❤️ Opción Enterprise (Profesional)
+# 2. Configurar webhooks WhatsApp → n8n
+# 3. Crear tablas en Baserow
+# 4. Importar workflows n8n (.json)
+# 5. Listo en ~25 minutos
+```
 
-Para operaciones a escala (100+ propiedades):
-
-- **n8n Pro/Business** ($20+/mes, self-hosted gratis)
-- **Airtable Pro** ($12/mes)
-- **Xero** ($15/mes, contabilidad oficial)
-- **OpenAI GPT-4o** (API credits)
-- **Amazon S3** (PDFs, $0.023/GB almacenado)
-
-**Total costo mes 1**: ~$50-80  
-**Setup completo**: ~45 minutos
+**Costo real**: $0 (solo costo de infraestructura si usas VPS: ~$3-5/mes)
 
 ---
 
 ## 🎯 Pasos de Instalación (5 fases)
 
-**Fase 1: Datos (Airtable)** - 5 min  
-**Fase 2: Mensajería (WhatsApp)** - 10 min  
-**Fase 3: Contabilidad (Google Sheets o Xero)** - 5-15 min ⭐ ELIGE AQUÍ  
-**Fase 4: IA (OpenAI)** - 2 min  
+**Fase 1: Base de Datos (Baserow)** - 5 min  
+**Fase 2: Mensajería (WhatsApp/Telegram)** - 10 min  
+**Fase 3: Contabilidad (Invoice Ninja)** - 5 min  
+**Fase 4: IA (Groq/Llama 3)** - 2 min  
 **Fase 5: Workflows (n8n)** - 10 min
 
 [👉 Ver SETUP_GUIDE.md completo](docs/SETUP_GUIDE.md)
@@ -175,122 +178,124 @@ Para operaciones a escala (100+ propiedades):
 ### 1️⃣ Enrutamiento Inteligente
 
 ```
-Mensaje WhatsApp entra
+Mensaje WhatsApp entra → n8n webhook
     ↓
-¿Número en base de propietarios? → [Menú Propietario]
+Query Baserow: ¿Teléfono en tabla Propietarios?
     ↓
-¿Número en base de estudiantes? → [Menú Estudiante]
-    ↓
-Número desconocido → [Menú Público]
+¿Propietario? → [Menú Propietario]
+¿Estudiante/Inquilino? → [Menú Inquilino]
+¿Desconocido? → [Menú Público]
 ```
 
-**Menú Propietario**: Crear propiedad, ver inquilinos, reportes, facturación  
-**Menú Estudiante**: Solicitar contrato, pagar renta, reportes de daños, mensajes  
-**Menú Público**: Info general, formulario de solicitud
+**Menú Propietario**: Ver inquilinos, reportes, facturas pendientes, crear propiedades  
+**Menú Inquilino**: Solicitar contrato, pagar renta, reportar daños, tutoría IA  
+**Menú Público**: Info general, formulario solicitud, consultar precio
 
 ### 2️⃣ PDFs Dinámicos (~3 segundos)
 
-El n8n workflow:
+Flujo en n8n:
 
-1. Recibe solicitud de contrato/factura
-2. Extrae datos de Airtable (arrendador, inquilino, términos)
-3. **Renderiza HTML → PDF** (usando librería pdf-lib o similar)
-4. Sube PDF a servidor temporal
-5. Envía enlace directo al chat WhatsApp
+```
+1. Inquilino: "Quiero mi contrato"
+   ↓
+2. Query Baserow → Extrae datos (formato, términos, arrendador)
+   ↓
+3. Nodo HTML2PDF → Renderiza template HTML
+   ↓
+4. Opcional: Sube a Baserow files, o enlace temporal
+   ↓
+5. Envía PDF link por WhatsApp
+```
 
-**Tiempo**: Query Airtable (500ms) + Render HTML (1s) + Upload PDF (500ms) + Send message (500ms) = ~2-3s ✅
+**Tiempo**: Query (500ms) + Render (1s) + Send (500ms) = **~2-3s** ✅
 
-### 3️⃣ Sincronización Contable (Xero)
+### 3️⃣ Sincronización Contable (Invoice Ninja)
 
 Flujo automático:
 
 ```
-Inquilino paga renta vía WhatsApp
-    ↓
-n8n valida el pago (Airtable)
-    ↓
-Crea factura en Xero automáticamente
-    ↓
-Actualiza estado de pago
-    ↓
-Notifica a propietario
+Inquilino: "Pagar $500 por renta"
+   ↓
+n8n valida: ¿Cantidad correcta y propiedad válida? (Baserow)
+   ↓
+Crea Invoice en Invoice Ninja
+   ↓
+Marca como pagado en Baserow
+   ↓
+Notifica al propietario (WhatsApp/Email)
 ```
 
-Soporta:
+**Soporta**:
 
-- Pagos únicos
-- Pagos recurrentes/automáticos
-- Recordatorios antes de la fecha de vencimiento
-- Reportes de flujo de caja
+- Pagos de una sola vez
+- Pagos recurrentes (mensuales)
+- Recordatorios automáticos (Discord/Email)
+- Reportes de flujo de caja (dashboard Invoice Ninja)
 
-### 4️⃣ Asistente de IA (Study Buddy)
+### 4️⃣ Asistente de IA (Groq Llama 3)
 
 Estudiantes pueden:
 
-- Hacer preguntas sobre sus tareas
-- Explicaciones de conceptos
-- Generador de resúmenes
-- Chat conversacional 24/7
+```
+"¿Cómo resuelvo las integrales?"
+   ↓
+n8n envía a Groq API (Llama 3 - GRATIS)
+   ↓
+Respuesta con explicación paso a paso
+   ↓
+Almacena en Baserow para historial
+```
 
-Base: GPT-4o con prompt personalizado para contexto educativo
+**Base**: Prompt personalizado para contexto educativo  
+**Costo**: GRATIS (API gratuita de Groq)  
+**Velocidad**: Respuesta en 1-2 segundos
 
 ---
 
-## 📊 Casos de Uso
+## 📊 Flujos de Casos de Uso (Stack Gratuito)
 
-| Caso                           | Actor       | Flujo                                                         |
-| ------------------------------ | ----------- | ------------------------------------------------------------- |
-| Solicitar contrato de alquiler | Estudiante  | Mensaje → n8n busca en Airtable → Genera PDF → Envía link     |
-| Procesar pago de renta         | Estudiante  | "Pagar $500" → Valida → Xero → Confirmación                   |
-| Ver inquilinos activos         | Propietario | Mensaje → Query Airtable → Lista con estado                   |
-| Reportar daño en propiedad     | Estudiante  | Foto + descripción → Se registra en Airtable → Notifica staff |
-| Consulta contable              | Propietario | "¿Facturas pendientes?" → Sync con Xero → Respuesta           |
-| Tutoría online                 | Estudiante  | "¿Cómo integrales?" → GPT-4o → Explicación completa           |
+| Caso                   | Actor       | Flujo                                                                                         |
+| ---------------------- | ----------- | --------------------------------------------------------------------------------------------- |
+| **Solicitar Contrato** | Estudiante  | Mensaje → n8n busca en **Baserow** → Genera PDF (nodo HTML2PDF) → Envía link (WA/Telegram)    |
+| **Procesar Pago**      | Estudiante  | "Pagar $500" → Valida (Baserow) → Crea factura en **Invoice Ninja** → Confirmación automática |
+| **Ver Inquilinos**     | Propietario | Mensaje → Query **Baserow** (Estado: Activo) → Lista formateada → Envía por WA                |
+| **Reportar Daño**      | Estudiante  | Foto + descripción → Registro en **Baserow** → Notifica a Staff (**Discord/Email**)           |
+| **Consulta Contable**  | Propietario | "¿Facturas pendientes?" → Sync con **Invoice Ninja** → Respuesta con saldo                    |
+| **Tutoría Online**     | Estudiante  | "¿Cómo integrales?" → **Groq/Llama 3** (gratis) → Explicación paso a paso                     |
 
 ---
 
 ## 🔒 Seguridad
 
-- **Validación**: Todos los números se validan contra base de propietarios/inquilinos
+- **Validación**: Todos los números se validan contra tabla de propietarios/inquilinos (**Baserow**)
 - **Permisos**: Roles (Admin, Propietario, Inquilino, Staff) con acceso granular
-- **Encriptación**: Credenciales Xero/Airtable en variables de entorno
+- **Encriptación**: API keys en variables de entorno (.env)
 - **Rate Limiting**: Límites por usuario para evitar spam
-- **Logs**: Auditoría completa de acciones (quién, qué, cuándo)
+- **Logs**: Auditoría completa en Baserow (quién, qué, cuándo)
+- **Self-Hosted**: Datos en tu servidor, no en la nube
 
 ---
 
-## 📞 Integración WhatsApp
+## 📞 Canales de Comunicación
 
-### Opción 1: Twilio (Recomendado)
-
-- Más flexible y rápido de setup
-- Soporta multimedia (imágenes, PDFs)
-- Excelente documentación
-
-### Opción 2: Meta (WhatsApp Business API)
-
-- Oficial de Meta
-- Mejor deliverability
-- Requiere verificación más estricta
-
-Ambas se conectan a n8n via webhook HTTP.
+| Canal                 | Entrada    | Salida            | Costo      |
+| --------------------- | ---------- | ----------------- | ---------- |
+| **WhatsApp** (Twilio) | ✅ Webhook | ✅ Respuestas     | $0.005/msg |
+| **Telegram**          | ✅ Webhook | ✅ Notificaciones | GRATIS     |
+| **Discord**           | ❌         | ✅ Alertas staff  | GRATIS     |
+| **Email**             | ❌         | ✅ Confirmaciones | GRATIS     |
 
 ---
 
-## 🛠️ Stack Tecnológico
+## 🛠️ Stack Tecnológico (100% Gratuito)
 
-| Componente        | Tecnología              | Rol                                | Costo MVP        |
-| ----------------- | ----------------------- | ---------------------------------- | ---------------- |
-| **Backend**       | n8n (100+ nodos)        | Orquestación, lógica               | $0 (self-hosted) |
-| **Base de datos** | Airtable                | Propiedades, inquilinos, historial | $0 (Free plan)   |
-| **Contabilidad**  | Google Sheets ⭐ / Xero | Facturas, pagos, reportes          | **$0** / $15/mes |
-| **IA**            | OpenAI (GPT-4o)         | Asistente, procesamiento NLP       | $0.15-2/mes      |
-| **Mensajería**    | WhatsApp API            | Interfaz de usuario                | $0.005/msg       |
-| **PDFs**          | pdf-lib / puppeteer     | Generación dinámica                | $0               |
-| **Autenticación** | API Keys + JWT          | Seguridad                          | $0               |
-
-**MVP Total (Mes 1)**: ~$5-10  
-**Enterprise (100+ props)**: ~$50-80
+| Componente            | Tecnología                      | Rol                     | Costo  | Licencia     |
+| --------------------- | ------------------------------- | ----------------------- | ------ | ------------ |
+| **Backend**           | n8n (self-hosted)               | Orquestación            | $0     | Open Source  |
+| **Base de datos**     | **Baserow** (self-hosted)       | Propiedades, inquilinos | $0     | Open Source  |
+| **Contabilidad**      | **Invoice Ninja** (self-hosted) | Facturas, pagos         | $0     | Open Source  |
+| **IA**                | **Groq / Llama 3**              | Asistente educativo     | $0     | API Gratuita |
+| **Total Costo Mes 1** | -                               | -                       | **$0** | -            |
 
 ---
 
@@ -307,23 +312,29 @@ Con n8n auto-scaling, maneja 1000+ mensajes/día sin problemas.
 
 ## �️ Roadmap
 
-### ✅ MVP Completado (v1.0)
+### ✅ MVP Completado (v1.0) - 100% Gratuito
 
-- [x] Gestión de propiedades en Airtable
-- [x] WhatsApp webhook (Twilio/Meta)
+- [x] Gestión de propiedades en **Baserow** (self-hosted)
+- [x] WhatsApp/Telegram webhooks
 - [x] Enrutamiento inteligente (Owner/Tenant/Public)
-- [x] PDFs dinámicos (contratos, facturas)
-- [x] Sincronización contable (Google Sheets, Xero)
-- [x] 3 asistentes de IA (GPT-4o)
+- [x] PDFs dinámicos (contratos, facturas) con html2pdf
+- [x] Sincronización contable (**Invoice Ninja** self-hosted)
+- [x] Asistente IA (**Groq/Llama 3** gratis)
+- [x] Notificaciones multi-canal (WA, Telegram, Discord, Email)
 - [x] Documentación completa (3,500+ líneas)
 - [x] Setup en 25 minutos
+- [x] **Costo: $0/mes** (datos tuyos, código abierto)
 
 ### 🔄 Próximo (v1.1) - Q2 2026
 
-- [ ] Guía Wave (opción gratuita adicional)
-- [ ] SMS como canal alternativo
-- [ ] Dashboard web complementario
+- [ ] Dashboard web (Baserow integrado)
+- [ ] SMS como canal adicional (Twilio)
+- [ ] Reportes avanzados (Invoice Ninja + Baserow)
 - [ ] Integración payment gateways (Stripe, Mercado Pago)
+- [ ] Templates de contratos personalizables
+
+### 🚀 Futuro (v2.0) - Q3-Q4 2026
+
 - [ ] Reportes avanzados (BI integrado)
 
 ### 🚀 Futuro (v2.0) - Q3-Q4 2026
