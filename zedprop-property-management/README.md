@@ -1,6 +1,16 @@
-# ZedProp — AI-Powered WhatsApp Property Management Platform
+# 🏢 ZedProp — AI-Powered WhatsApp Property Management Platform
 
-Una plataforma completa de gestión de propiedades construida **directamente dentro de WhatsApp** usando n8n, Airtable, Google Sheets (o Xero) y GPT-4o. Sin aplicaciones que descargar, sin portales web complicados — todo funciona en WhatsApp.
+[![GitHub License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-rosario06%2Fn8n-blue?logo=github)](https://github.com/rosario06/n8n)
+[![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)]()
+[![Setup Time](https://img.shields.io/badge/Setup-25%20min-blue)]()
+[![Cost](https://img.shields.io/badge/Cost-$0%20Starter-green)]()
+
+Una plataforma **enterprise-grade** de gestión de propiedades construida **directamente dentro de WhatsApp** usando n8n, Airtable, Google Sheets (o Xero) y GPT-4o.
+
+✨ **Sin aplicaciones que descargar, sin portales web complicados** — todo funciona en WhatsApp.  
+💰 **Gratis para empezar** ($0/mes con Google Sheets)  
+⚡ **Instalable en 25 minutos**
 
 ## 🎯 Descripción General
 
@@ -9,6 +19,16 @@ ZedProp es una solución enterprise para gestionar:
 - **Residencias para estudiantes** (contratos, pagos, documentos)
 - **Propiedades de alquiler** (inquilinos, solicitudes, facturas)
 - **Comunicación directa** con propietarios, administradores e inquilinos
+
+### ⚡ Inicio Rápido
+
+| Recurso                                                   | Descripción                                                 |
+| --------------------------------------------------------- | ----------------------------------------------------------- |
+| [📋 REQUIREMENT_VALIDATION.md](REQUIREMENT_VALIDATION.md) | ✅ Validación 100% del requerimiento inicial                |
+| [📖 SETUP_GUIDE.md](docs/SETUP_GUIDE.md)                  | 5 fases de instalación (25 min total)                       |
+| [💰 ACCOUNTING_OPTIONS.md](ACCOUNTING_OPTIONS.md)         | Comparar: Google Sheets vs Wave vs Xero                     |
+| [🏗️ ARCHITECTURE.md](docs/ARCHITECTURE.md)                | Diagrama técnico completo                                   |
+| [🔌 Integraciones](integrations/)                         | Guías de setup para Airtable, WhatsApp, Google Sheets, Xero |
 
 ### Características Principales
 
@@ -109,26 +129,44 @@ zedprop-property-management/
 
 ## 🚀 Instalación Rápida
 
-### Requisitos Previos
+### ⭐ Opción MVP (Recomendada) - Totalmente Gratis
 
-- **n8n** (self-hosted o cloud)
-- **Airtable** (cuenta gratuita ok)
-- **Xero** (o alternativa contable; Odoo, ERPNext, etc.)
-- **OpenAI API** (GPT-4o o similar)
-- **WhatsApp Business API** (Twilio o Meta)
+Todos los servicios con plan **gratuito**:
 
-### Pasos Iniciales
+- **n8n** (self-hosted o n8n.cloud - Free tier)
+- **Airtable** (Free: 5 bases, 1200 registros)
+- **Google Sheets** ⭐ (Contabilidad gratis - Setup 5 min)
+- **OpenAI API** (Pay-as-you-go desde $0.15)
+- **WhatsApp Business API** (Twilio - $0.005/msg)
 
-1. **Clona/descarga la carpeta** en tu instancia n8n
-2. **Configura variables de entorno** → `config/.env`
-3. **Crea base Airtable** → Sigue `integrations/airtable-config.js`
-4. **Connect Xero API** → Sigue `integrations/xero-config.js`
-5. **Setup WhatsApp webhook** → Sigue `integrations/whatsapp-setup.md`
-6. **Importa workflows** → En n8n UI: Import → selecciona JSONs de `n8n-workflows/`
-7. **Configura credenciales** → En n8n: conecta todas las cuentas
-8. **Activa webhook** → Deploy el flujo principal
+**Total costo mes 1**: ~$5-10  
+**Setup completo**: ~25 minutos  
+[Ver ACCOUNTING_OPTIONS.md](ACCOUNTING_OPTIONS.md) para otras opciones
 
-Más detalles en [SETUP_GUIDE.md](docs/SETUP_GUIDE.md)
+### ❤️ Opción Enterprise (Profesional)
+
+Para operaciones a escala (100+ propiedades):
+
+- **n8n Pro/Business** ($20+/mes, self-hosted gratis)
+- **Airtable Pro** ($12/mes)
+- **Xero** ($15/mes, contabilidad oficial)
+- **OpenAI GPT-4o** (API credits)
+- **Amazon S3** (PDFs, $0.023/GB almacenado)
+
+**Total costo mes 1**: ~$50-80  
+**Setup completo**: ~45 minutos
+
+---
+
+## 🎯 Pasos de Instalación (5 fases)
+
+**Fase 1: Datos (Airtable)** - 5 min  
+**Fase 2: Mensajería (WhatsApp)** - 10 min  
+**Fase 3: Contabilidad (Google Sheets o Xero)** - 5-15 min ⭐ ELIGE AQUÍ  
+**Fase 4: IA (OpenAI)** - 2 min  
+**Fase 5: Workflows (n8n)** - 10 min
+
+[👉 Ver SETUP_GUIDE.md completo](docs/SETUP_GUIDE.md)
 
 ---
 
@@ -241,15 +279,18 @@ Ambas se conectan a n8n via webhook HTTP.
 
 ## 🛠️ Stack Tecnológico
 
-| Componente        | Tecnología          | Rol                                |
-| ----------------- | ------------------- | ---------------------------------- |
-| **Backend**       | n8n (100+ nodos)    | Orquestación, lógica               |
-| **Base de datos** | Airtable            | Propiedades, inquilinos, historial |
-| **Contabilidad**  | Xero API            | Facturas, pagos, reportes          |
-| **IA**            | OpenAI (GPT-4o)     | Asistente, procesamiento NLP       |
-| **Mensajería**    | WhatsApp API        | Interfaz de usuario                |
-| **PDFs**          | pdf-lib / puppeteer | Generación dinámica                |
-| **Autenticación** | API Keys + JWT      | Seguridad                          |
+| Componente        | Tecnología              | Rol                                | Costo MVP        |
+| ----------------- | ----------------------- | ---------------------------------- | ---------------- |
+| **Backend**       | n8n (100+ nodos)        | Orquestación, lógica               | $0 (self-hosted) |
+| **Base de datos** | Airtable                | Propiedades, inquilinos, historial | $0 (Free plan)   |
+| **Contabilidad**  | Google Sheets ⭐ / Xero | Facturas, pagos, reportes          | **$0** / $15/mes |
+| **IA**            | OpenAI (GPT-4o)         | Asistente, procesamiento NLP       | $0.15-2/mes      |
+| **Mensajería**    | WhatsApp API            | Interfaz de usuario                | $0.005/msg       |
+| **PDFs**          | pdf-lib / puppeteer     | Generación dinámica                | $0               |
+| **Autenticación** | API Keys + JWT          | Seguridad                          | $0               |
+
+**MVP Total (Mes 1)**: ~$5-10  
+**Enterprise (100+ props)**: ~$50-80
 
 ---
 
@@ -264,7 +305,38 @@ Con n8n auto-scaling, maneja 1000+ mensajes/día sin problemas.
 
 ---
 
-## 📝 Próximos Pasos
+## �️ Roadmap
+
+### ✅ MVP Completado (v1.0)
+
+- [x] Gestión de propiedades en Airtable
+- [x] WhatsApp webhook (Twilio/Meta)
+- [x] Enrutamiento inteligente (Owner/Tenant/Public)
+- [x] PDFs dinámicos (contratos, facturas)
+- [x] Sincronización contable (Google Sheets, Xero)
+- [x] 3 asistentes de IA (GPT-4o)
+- [x] Documentación completa (3,500+ líneas)
+- [x] Setup en 25 minutos
+
+### 🔄 Próximo (v1.1) - Q2 2026
+
+- [ ] Guía Wave (opción gratuita adicional)
+- [ ] SMS como canal alternativo
+- [ ] Dashboard web complementario
+- [ ] Integración payment gateways (Stripe, Mercado Pago)
+- [ ] Reportes avanzados (BI integrado)
+
+### 🚀 Futuro (v2.0) - Q3-Q4 2026
+
+- [ ] Mobile app (iOS/Android)
+- [ ] WhatsApp Catalog integration
+- [ ] Marketplace de templates
+- [ ] White-label solution
+- [ ] Multi-tenant SaaS
+
+---
+
+## �📝 Próximos Pasos
 
 1. **Revisa** [ARCHITECTURE.md](docs/ARCHITECTURE.md) para entender el flujo completo
 2. **Sigue** [SETUP_GUIDE.md](docs/SETUP_GUIDE.md) para instalación paso a paso
