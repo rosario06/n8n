@@ -30,8 +30,8 @@ COPY --from=builder /app/dist ./dist
 COPY package*.json ./
 COPY src ./src
 
-# Expose port
-EXPOSE 5173
+# Expose default Coolify-compatible port
+EXPOSE 3000
 
-# Default command - serve the built app
-CMD ["serve", "-s", "dist", "-l", "5173"]
+# Default command - serve the built app (uses Coolify PORT if provided)
+CMD ["sh", "-c", "serve -s dist -l ${PORT:-3000}"]
