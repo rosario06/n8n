@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # ==================== FRONTEND - REACT/VITE ====================
+  frontend:
+    build: .
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_N8N_BASE_URL=${VITE_N8N_BASE_URL:-https://n8n.kelocode.com/webhook/}
+      - VITE_WEBHOOK_SAVE_INGRESO=${VITE_WEBHOOK_SAVE_INGRESO:-save-ingreso}
+      - VITE_WEBHOOK_SAVE_GASTO=${VITE_WEBHOOK_SAVE_GASTO:-save-gasto}
+      - VITE_WEBHOOK_GET_ANALYSIS=${VITE_WEBHOOK_GET_ANALYSIS:-get-analysis}
+      - VITE_OPENAI_API_KEY=${VITE_OPENAI_API_KEY}
+    volumes:
+      - ./src:/app/src
+      - node_modules:/app/node_modules
+    restart: unless-stopped
+    networks:
+      - geely-network
+    depends_on:
+      - db
+
+  # ==================== POSTGRESQL DATABASE ====================
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-geely_user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-geely_secure_password}
+      POSTGRES_DB: ${DATABASE_NAME:-geely_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./setup_postgres.sql:/docker-entrypoint-initdb.d/01-init.sql
+    restart: unless-stopped
+    networks:
+      - geely-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-geely_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  node_modules:
+
+networks:
+  geely-network:
+    driver: bridge
