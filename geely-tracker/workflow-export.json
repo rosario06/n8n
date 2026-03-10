@@ -1,0 +1,152 @@
+{
+  "name": "Agente Autónomo Semanal",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Webhook Ingreso",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "save-ingreso",
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "name": "Insert Ingreso",
+      "type": "n8n-nodes-base.postgres",
+      "position": [450, 300],
+      "parameters": {
+        "operation": "insert",
+        "schema": "public",
+        "table": "ingresos",
+        "columns": "user_id,fecha,categoria,monto,descripcion",
+        "values": "={{ $json.user_id }},={{ $json.fecha }},={{ $json.categoria }},={{ $json.monto }},={{ $json.descripcion }}"
+      }
+    },
+    {
+      "name": "Webhook Gasto",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 750],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "save-gasto",
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "name": "Insert Gasto",
+      "type": "n8n-nodes-base.postgres",
+      "position": [450, 750],
+      "parameters": {
+        "operation": "insert",
+        "schema": "public",
+        "table": "gastos",
+        "columns": "user_id,fecha,categoria,monto,descripcion",
+        "values": "={{ $json.user_id }},={{ $json.fecha }},={{ $json.categoria }},={{ $json.monto }},={{ $json.descripcion }}"
+      }
+    },
+    {
+      "name": "Cron Lunes 9AM",
+      "type": "n8n-nodes-base.cron",
+      "position": [650, 500],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyWeek",
+              "dayOfWeek": 1,
+              "hour": 9,
+              "minute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Weekly Ingresos",
+      "type": "n8n-nodes-base.postgres",
+      "position": [850, 400],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(SUM(monto), 0) as total FROM ingresos WHERE user_id = 'test-user' AND EXTRACT(WEEK FROM fecha) = EXTRACT(WEEK FROM CURRENT_DATE) AND EXTRACT(YEAR FROM fecha) = EXTRACT(YEAR FROM CURRENT_DATE)"
+      }
+    },
+    {
+      "name": "Get Weekly Gastos",
+      "type": "n8n-nodes-base.postgres",
+      "position": [850, 600],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(SUM(monto), 0) as total FROM gastos WHERE user_id = 'test-user' AND EXTRACT(WEEK FROM fecha) = EXTRACT(WEEK FROM CURRENT_DATE) AND EXTRACT(YEAR FROM fecha) = EXTRACT(YEAR FROM CURRENT_DATE)"
+      }
+    },
+    {
+      "name": "Calculate Progress",
+      "type": "n8n-nodes-base.function",
+      "position": [1050, 500],
+      "parameters": {
+        "code": "const ingreso = $input.first().json.data?.[0]?.total ?? 0;\nconst gasto = $input.last().json.data?.[0]?.total ?? 0;\nconst neto = ingreso - gasto;\nconst target = 9615;\n\nreturn {\n  ingreso: parseFloat(ingreso),\n  gasto: parseFloat(gasto),\n  neto: parseFloat(neto),\n  target,\n  onTrack: neto >= target,\n  difference: Math.abs(target - neto)\n};"
+      }
+    },
+    {
+      "name": "OpenAI Analysis",
+      "type": "n8n-nodes-base.openaiChat",
+      "position": [1250, 500],
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "messageValues": [
+            {
+              "content": "{{ 'Éstas son las métricas financieras de esta semana:\\nIngresos: RD$' + $node['Calculate Progress'].json.ingreso + '\\nGastos: RD$' + $node['Calculate Progress'].json.gasto + '\\nNeto: RD$' + $node['Calculate Progress'].json.neto + '\\nMeta semanal: RD$' + $node['Calculate Progress'].json.target + '\\n\\nSi está fuera de meta, dame 3 estrategias para mejorar. Si está en meta, felicítalo y sugiere una estrategia para exceder la meta. Responde en español, máximo 150 palabras.' }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Save Analysis",
+      "type": "n8n-nodes-base.postgres",
+      "position": [1450, 500],
+      "parameters": {
+        "operation": "insert",
+        "schema": "public",
+        "table": "agent_history",
+        "columns": "user_id,analysis_date,total_ingreso,total_gasto,plan_status,agent_recommendation,openai_response",
+        "values": "'test-user',CURRENT_DATE,={{ $node['Calculate Progress'].json.ingreso }},={{ $node['Calculate Progress'].json.gasto }},'{{ $node['Calculate Progress'].json.onTrack ? 'On Track' : 'Needs Adjustment' }}','Weekly Analysis','{{ $node[\"OpenAI Analysis\"].json.choices[0].message.content }}'"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Ingreso": {
+      "main": [[{ "node": "Insert Ingreso", "branch": 0 }]]
+    },
+    "Insert Ingreso": {
+      "main": [[]]
+    },
+    "Webhook Gasto": {
+      "main": [[{ "node": "Insert Gasto", "branch": 0 }]]
+    },
+    "Insert Gasto": {
+      "main": [[]]
+    },
+    "Cron Lunes 9AM": {
+      "main": [[{ "node": "Get Weekly Ingresos", "branch": 0 }, { "node": "Get Weekly Gastos", "branch": 0 }]]
+    },
+    "Get Weekly Ingresos": {
+      "main": [[{ "node": "Calculate Progress", "branch": 0 }]]
+    },
+    "Get Weekly Gastos": {
+      "main": [[{ "node": "Calculate Progress", "branch": 0 }]]
+    },
+    "Calculate Progress": {
+      "main": [[{ "node": "OpenAI Analysis", "branch": 0 }]]
+    },
+    "OpenAI Analysis": {
+      "main": [[{ "node": "Save Analysis", "branch": 0 }]]
+    },
+    "Save Analysis": {
+      "main": [[]]
+    }
+  }
+}

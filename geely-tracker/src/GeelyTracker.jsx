@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { saveIngreso, saveGasto, saveAgentAnalysis, getAgentAnalysis, testConnection } from "./pgClient";
 
 const META_TOTAL = 300000;
 const SUELDO = 95000;
@@ -410,6 +411,9 @@ export default function GeelyTracker() {
       return "";
     }
   });
+  const [agenteAnalysis, setAgenteAnalysis] = useState(null);
+  const [agenteLoading, setAgenteLoading] = useState(false);
+  const [agenteError, setAgenteError] = useState("");
 
   useEffect(() => {
     saveData(data);
@@ -427,31 +431,78 @@ export default function GeelyTracker() {
     } catch {}
   }, [openaiKey]);
 
+  // Test conexión a PostgreSQL al montar
+  useEffect(() => {
+    const checkDB = async () => {
+      const connected = await testConnection();
+      if (!connected) {
+        showToast("⚠️ PostgreSQL no disponible (relación solo local)", "err");
+      }
+    };
+    checkDB();
+  }, []);
+
   const showToast = (msg, tipo = "ok") => {
     setToast({ msg, tipo });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const agregarIngreso = () => {
+  const agregarIngreso = async () => {
     if (!formIngreso.monto || isNaN(+formIngreso.monto) || +formIngreso.monto <= 0)
       return showToast("Ingresa un monto válido", "err");
+    
+    const nuevoIngreso = { id: Date.now(), ...formIngreso, monto: +formIngreso.monto };
+    
+    // Guardar localmente
     setData((d) => ({
       ...d,
-      ingresos: [...d.ingresos, { id: Date.now(), ...formIngreso, monto: +formIngreso.monto }],
+      ingresos: [...d.ingresos, nuevoIngreso],
     }));
+    
+    // Guardar en PostgreSQL
+    const result = await saveIngreso(
+      +formIngreso.monto,
+      formIngreso.fuente,
+      formIngreso.descripcion,
+      formIngreso.fecha
+    );
+    
     setFormIngreso((f) => ({ ...f, monto: "", descripcion: "" }));
-    showToast("✅ Ingreso registrado");
+    
+    if (result.success) {
+      showToast("✅ Ingreso registrado (local + BD)");
+    } else {
+      showToast("⚠️ Ingreso local OK, BD con error", "err");
+    }
   };
 
-  const agregarGasto = () => {
+  const agregarGasto = async () => {
     if (!formGasto.monto || isNaN(+formGasto.monto) || +formGasto.monto <= 0)
       return showToast("Ingresa un monto válido", "err");
+    
+    const nuevoGasto = { id: Date.now(), ...formGasto, monto: +formGasto.monto };
+    
+    // Guardar localmente
     setData((d) => ({
       ...d,
-      gastos: [...d.gastos, { id: Date.now(), ...formGasto, monto: +formGasto.monto }],
+      gastos: [...d.gastos, nuevoGasto],
     }));
+    
+    // Guardar en PostgreSQL
+    const result = await saveGasto(
+      +formGasto.monto,
+      formGasto.categoria,
+      formGasto.descripcion,
+      formGasto.fecha
+    );
+    
     setFormGasto((f) => ({ ...f, monto: "", descripcion: "" }));
-    showToast("✅ Gasto registrado");
+    
+    if (result.success) {
+      showToast("✅ Gasto registrado (local + BD)");
+    } else {
+      showToast("⚠️ Gasto local OK, BD con error", "err");
+    }
   };
 
   const toggleTarea = (semana, idx) => {
@@ -539,6 +590,7 @@ Responde en español dominicano natural, directo y práctico. Máximo 200 palabr
     { id: "gastos", icon: "💸", label: "Gastos" },
     { id: "planes", icon: "⚡", label: "Planes" },
     { id: "tareas", icon: "✅", label: "Tareas" },
+    { id: "agente", icon: "🔄", label: "Agente Autónomo" },
     { id: "ia", icon: "🤖", label: "Asesor IA" },
     { id: "config", icon: "⚙️", label: "Config" },
   ];
@@ -1465,6 +1517,31 @@ Responde en español dominicano natural, directo y práctico. Máximo 200 palabr
                   📌 Obtén tu key en: <span style={{ color: "#4ade80", fontWeight: "600" }}>platform.openai.com</span>
                 </div>
               </div>
+              <button
+                style={{ ...S.btn("#4ade80"), fontSize: "11px", padding: "6px 12px" }}
+                onClick={async () => {
+                  if (!openaiKey) {
+                    alert("❌ Agrega una API key primero");
+                    return;
+                  }
+                  try {
+                    const res = await fetch("https://api.openai.com/v1/models/gpt-4o-mini", {
+                      headers: { "Authorization": `Bearer ${openaiKey}` }
+                    });
+                    if (res.ok) {
+                      alert("✅ API key válida y funcional");
+                    } else if (res.status === 401) {
+                      alert("❌ API key inválida (401). Verifica:\n- Que sea correcta\n- Que no tenga espacios\n- Que tenga crédito en tu cuenta OpenAI");
+                    } else {
+                      alert(`❌ Error HTTP ${res.status}`);
+                    }
+                  } catch (err) {
+                    alert("❌ Error: " + err.message);
+                  }
+                }}
+              >
+                🧪 Probar Key
+              </button>
             </div>
 
             <div style={{ ...S.card, background: "#030508", borderLeft: "3px solid #f59e0b" }}>
@@ -1478,6 +1555,118 @@ Responde en español dominicano natural, directo y práctico. Máximo 200 palabr
                 <li>Mantén tu navegador actualizado y confiable</li>
                 <li>Si algo se vuelve sospechoso, regenera las keys en sus respectivas plataformas</li>
               </ul>
+            </div>
+          </div>
+        )}
+
+        {tab === "agente" && (
+          <div>
+            <div style={{ ...S.card, borderLeft: "3px solid #d4af37", padding: "12px 14px", marginBottom: "14px" }}>
+              <div style={{ fontSize: "13px", fontWeight: "700", color: "#d4af37", marginBottom: "6px" }}>
+                🔄 Agente Autónomo Semanal
+              </div>
+              <div style={{ fontSize: "11px", color: "#3a5a7a", lineHeight: "1.6" }}>
+                El agente IA analiza tu progreso cada <strong>lunes 9am</strong> e sugiere nuevas estrategias si los planes actuales no funcionan. Resultados visibles abajo.
+              </div>
+            </div>
+
+            <button
+              style={{ ...S.btn("#d4af37"), width: "100%", marginBottom: "14px" }}
+              disabled={agenteLoading}
+              onClick={async () => {
+                setAgenteLoading(true);
+                setAgenteError("");
+                setAgenteAnalysis(null);
+
+                try {
+                  console.log('📡 Llamando webhook get-analysis...');
+                  const result = await getAgentAnalysis();
+                  console.log('✅ Respuesta del webhook:', result);
+                  
+                  if (result.error) {
+                    setAgenteError(result.error);
+                  } else {
+                    setAgenteAnalysis(result);
+                  }
+                } catch (err) {
+                  console.error('❌ Error:', err);
+                  setAgenteError(err.message);
+                } finally {
+                  setAgenteLoading(false);
+                }
+              }}
+            >
+              {agenteLoading ? "⏳ Analizando..." : "📊 Analizar Ahora"}
+            </button>
+
+            {agenteError && (
+              <div style={{ ...S.card, borderLeft: "3px solid #f87171", marginBottom: "14px", padding: "12px 14px" }}>
+                <div style={{ fontSize: "12px", color: "#f87171", fontWeight: "600" }}>
+                  ⚠️ {agenteError}
+                </div>
+              </div>
+            )}
+
+            {agenteAnalysis && (
+              <div style={{ ...S.card, borderTop: "3px solid #d4af37", marginBottom: "14px" }}>
+                <div style={{ fontSize: "13px", fontWeight: "700", color: "#d4af37", marginBottom: "14px" }}>
+                  📈 ANÁLISIS DEL AGENTE
+                </div>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+                  <div style={{ ...S.card, background: "#0d1e30" }}>
+                    <div style={{ fontSize: "10px", color: "#a0aec0", letterSpacing: "1px", marginBottom: "4px" }}>
+                      INGRESOS
+                    </div>
+                    <div style={{ fontSize: "16px", fontWeight: "700", color: "#4ade80" }}>
+                      RD${parseFloat(agenteAnalysis.total_ingreso || 0).toLocaleString()}
+                    </div>
+                  </div>
+                  
+                  <div style={{ ...S.card, background: "#0d1e30" }}>
+                    <div style={{ fontSize: "10px", color: "#a0aec0", letterSpacing: "1px", marginBottom: "4px" }}>
+                      GASTOS
+                    </div>
+                    <div style={{ fontSize: "16px", fontWeight: "700", color: "#f87171" }}>
+                      RD${parseFloat(agenteAnalysis.total_gasto || 0).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: "14px" }}>
+                  <div style={{ fontSize: "10px", color: "#a0aec0", letterSpacing: "1px", marginBottom: "6px", textTransform: "uppercase" }}>
+                    Estado: {agenteAnalysis.plan_status}
+                  </div>
+                  {agenteAnalysis.agent_recommendation && (
+                    <div style={{ fontSize: "11px", color: "#8aaccc", lineHeight: "1.8", whiteSpace: "pre-wrap" }}>
+                      {agenteAnalysis.agent_recommendation}
+                    </div>
+                  )}
+                </div>
+
+                {agenteAnalysis.openai_response && (
+                  <div style={{ borderTop: "1px solid #1a3a5a", paddingTop: "12px" }}>
+                    <div style={{ fontSize: "10px", color: "#a0aec0", letterSpacing: "1px", marginBottom: "6px" }}>
+                      RESPUESTA IA
+                    </div>
+                    <div style={{ fontSize: "11px", color: "#6b8aae", lineHeight: "1.6", whiteSpace: "pre-wrap" }}>
+                      {agenteAnalysis.openai_response}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ ...S.card, borderTop: "2px solid #d4af37", paddingTop: "14px" }}>
+              <div style={{ fontSize: "11px", color: "#d4af37", letterSpacing: "2px", marginBottom: "10px", textTransform: "uppercase" }}>
+                📅 Próximo análisis automático
+              </div>
+              <div style={{ fontSize: "12px", color: "#3a5a7a" }}>
+                Semana del {new Date(new Date().setDate(new Date().getDate() - new Date().getDay() + 1)).toLocaleDateString("es-DO")}
+              </div>
+              <div style={{ fontSize: "11px", color: "#1a3a5a", marginTop: "6px" }}>
+                El sistema revisará si cumpliste la meta semanal y sugerirá ajustes.
+              </div>
             </div>
           </div>
         )}
@@ -1556,7 +1745,18 @@ Responde en español dominicano natural, directo y práctico. Máximo 200 palabr
 
             {aiError && !aiLoading && (
               <div style={{ ...S.card, borderLeft: "3px solid #f87171", padding: "12px 14px" }}>
-                <div style={{ fontSize: "12px", color: "#f87171" }}>⚠️ {aiError}</div>
+                <div style={{ fontSize: "12px", color: "#f87171", marginBottom: "8px" }}>⚠️ {aiError}</div>
+                {aiError.includes("401") && (
+                  <div style={{ fontSize: "11px", color: "#ea580c", lineHeight: "1.6", marginTop: "8px" }}>
+                    <strong>Soluciones:</strong>
+                    <ul style={{ margin: "4px 0", paddingLeft: "16px" }}>
+                      <li>Ve a Config → Parámetros IA</li>
+                      <li>Copia correctamente tu API key de OpenAI (sin espacios)</li>
+                      <li>Verifica en openai.com que la key sea válida</li>
+                      <li>Si deseas, coloca una key de Claude (Anthropic) primero</li>
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
 

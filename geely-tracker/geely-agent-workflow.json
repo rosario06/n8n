@@ -1,0 +1,329 @@
+{
+  "name": "Agente Autónomo Geely Tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "save-ingreso",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-ingreso",
+      "name": "Webhook Save Ingreso",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 100]
+    },
+    {
+      "parameters": {
+        "path": "save-gasto",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-gasto",
+      "name": "Webhook Save Gasto",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "path": "get-analysis",
+        "httpMethod": "GET",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-analysis",
+      "name": "Webhook Get Analysis",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 500]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "type": "hours",
+              "value": 24
+            }
+          ],
+          "triggerAtStartup": false
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Cron Monday 9 AM",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [100, 700]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT SUM(monto) as total FROM ingresos WHERE user_id = '{{ $json.user_id }}' AND EXTRACT(WEEK FROM fecha) = EXTRACT(WEEK FROM CURRENT_DATE)",
+        "nodeCredentialType": "postgres"
+      },
+      "id": "postgres-sum-ingreso",
+      "name": "PG: Sum Ingresos Week",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [400, 100],
+      "credentials": {
+        "postgres": "geely-postgres"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT SUM(monto) as total FROM gastos WHERE user_id = '{{ $json.user_id }}' AND EXTRACT(WEEK FROM fecha) = EXTRACT(WEEK FROM CURRENT_DATE)",
+        "nodeCredentialType": "postgres"
+      },
+      "id": "postgres-sum-gasto",
+      "name": "PG: Sum Gastos Week",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [400, 300],
+      "credentials": {
+        "postgres": "geely-postgres"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "ingresos",
+        "columns": "user_id, fecha, categoria, monto, descripcion",
+        "values": "{{ $json.user_id }}\t{{ $json.fecha }}\t{{ $json.categoria || $json.fuente }}\t{{ $json.monto }}\t{{ $json.descripcion }}"
+      },
+      "id": "postgres-insert-ingreso",
+      "name": "PG: Insert Ingreso",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [400, 100],
+      "credentials": {
+        "postgres": "geely-postgres"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "gastos",
+        "columns": "user_id, fecha, categoria, monto, descripcion",
+        "values": "{{ $json.user_id }}\t{{ $json.fecha }}\t{{ $json.categoria }}\t{{ $json.monto }}\t{{ $json.descripcion }}"
+      },
+      "id": "postgres-insert-gasto",
+      "name": "PG: Insert Gasto",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [400, 300],
+      "credentials": {
+        "postgres": "geely-postgres"
+      }
+    },
+    {
+      "parameters": {
+        "code": "const ingreso = $node['PG: Sum Ingresos Week'].json[0]?.total || 0;\nconst gasto = $node['PG: Sum Gastos Week'].json[0]?.total || 0;\nconst neto = ingreso - gasto;\nconst target = 9615; // RD$300,000 / 26 semanas\n\nreturn {\n  ingreso,\n  gasto,\n  neto,\n  target,\n  status: neto >= target ? 'On Track' : 'Needs Adjustment',\n  difference: Math.abs(target - neto)\n};"
+      },
+      "id": "calculate-progress",
+      "name": "Calculate Progress",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [700, 200]
+    },
+    {
+      "parameters": {
+        "code": "const ingreso = $node['Calculate Progress'].json.ingreso || 0;\nconst gasto = $node['Calculate Progress'].json.gasto || 0;\nconst neto = $node['Calculate Progress'].json.neto || 0;\nconst target = $node['Calculate Progress'].json.target || 0;\nconst onTrack = neto >= target;\nconst diferencia = Math.abs(target - neto);\n\nconst systemPrompt = `Eres AGENTE FINANCIERO AUTÓNOMO - Financial Advisor AI Agent.\n\nTU OBJETIVO:\nAnalizar métricas financieras semanales y generar recomendaciones estratégicas para alcanzar la meta de RD$300,000 en 26 semanas (RD$9,615/semana).\n\nCONTEXTO DEL USUARIO:\n- Meta semanal: RD$${target.toLocaleString('es-DO')}\n- Período: Semana actual\n- Moneda: Pesos Dominicanos (RD$)\n- Horizonte: 26 semanas\n\nMÉTRICAS ACTUALES:\n- Ingresos: RD$${ingreso.toLocaleString('es-DO')}\n- Gastos: RD$${gasto.toLocaleString('es-DO')}\n- Neto: RD$${neto.toLocaleString('es-DO')}\n- Estado: ${onTrack ? '✅ EN META' : '⚠️ FUERA DE META'}\n- ${onTrack ? 'Diferencia POSITIVA: +RD$' + diferencia.toLocaleString('es-DO') : 'Déficit: -RD$' + diferencia.toLocaleString('es-DO')}\n\nFORMATO DE RESPUESTA REQUERIDO:\n1. **DIAGNÓSTICO** (1 párrafo): Análisis actual del estado financiero\n2. **RECOMENDACIONES** (3 puntos específicos según estado):\n   - Si está EN META: Cómo mantener y exceder\n   - Si está FUERA: Cómo alcanzar en 7 días\n3. **PLAN DE ACCIÓN** (próximos 3 pasos concretos)\n4. **META PRÓXIMA SEMANA** (número específico en RD$)\n\nTONO: Profesional, motivador, directo y accionable.\nIDIOMA: Español (República Dominicana)\nEXTENSIÓN: Máximo 250 palabras`;\n\nreturn {\n  systemPrompt: systemPrompt,\n  userMessage: `${onTrack ? '✅ ESTADO: En Meta' : '⚠️ ESTADO: Fuera de Meta'}\nAnaliza estos números de esta semana`,\n  onTrack: onTrack,\n  metrics: { ingreso, gasto, neto, target, diferencia }\n};"
+      },
+      "id": "build-prompt",
+      "name": "Build AI Agent Prompt",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "code": "const apiKey = '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';\nconst prompt = $node['Build AI Agent Prompt'].json;\n\nconst response = await fetch('https://api.openai.com/v1/chat/completions', {\n  method: 'POST',\n  headers: {\n    'Authorization': `Bearer ${apiKey}`,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    model: 'gpt-4o-mini',\n    messages: [\n      { role: 'system', content: prompt.systemPrompt },\n      { role: 'user', content: prompt.userMessage }\n    ],\n    temperature: 0.7,\n    max_tokens: 500,\n    top_p: 0.9\n  })\n});\n\nconst data = await response.json();\n\nif (!response.ok) {\n  return { error: data.error.message, fallback: true };\n}\n\nreturn {\n  analysis: data.choices[0].message.content,\n  model: data.model,\n  usage: data.usage,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "openai-agent-call",
+      "name": "Call OpenAI Agent",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1100, 200]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "agent_history",
+        "columns": "user_id, analysis_date, total_ingreso, total_gasto, plan_status, agent_recommendation, openai_response",
+        "values": "'test-user'\tCURRENT_DATE\t{{ $node['Calculate Progress'].json.ingreso }}\t{{ $node['Calculate Progress'].json.gasto }}\t'{{ $node['Calculate Progress'].json.status }}'\t'Weekly Automated Analysis'\t'{{ $node[\"Call OpenAI Agent\"].json.analysis }}'"
+      },
+      "id": "postgres-save-analysis",
+      "name": "PG: Save Analysis",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [1300, 200],
+      "credentials": {
+        "postgres": "geely-postgres"
+      }
+    },
+    {
+      "parameters": {
+        "body": "{\n  \"success\": true,\n  \"message\": \"Análisis guardado\",\n  \"status\": \"{{ $node['Calculate Progress'].json.status }}\",\n  \"recommendations\": \"{{ $node['OpenAI Analysis'].json.choices[0].message.content }}\"\n}"
+      },
+      "id": "response-success",
+      "name": "Response Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1600, 200]
+    }
+  ],
+  "connections": {
+    "Webhook Save Ingreso": {
+      "main": [
+        [
+          {
+            "node": "PG: Insert Ingreso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Save Gasto": {
+      "main": [
+        [
+          {
+            "node": "PG: Insert Gasto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Get Analysis": {
+      "main": [
+        [
+          {
+            "node": "PG: Sum Ingresos Week",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "PG: Sum Gastos Week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron Monday 9 AM": {
+      "main": [
+        [
+          {
+            "node": "PG: Sum Ingresos Week",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "PG: Sum Gastos Week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG: Sum Ingresos Week": {
+      "main": [
+        [
+          {
+            "node": "Calculate Progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG: Sum Gastos Week": {
+      "main": [
+        [
+          {
+            "node": "Calculate Progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG: Insert Ingreso": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG: Insert Gasto": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Progress": {
+      "main": [
+        [
+          {
+            "node": "Build AI Agent Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build AI Agent Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI Agent": {
+      "main": [
+        [
+          {
+            "node": "PG: Save Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PG: Save Analysis": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1"
+}
